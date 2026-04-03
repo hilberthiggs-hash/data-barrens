@@ -70,7 +70,7 @@ ln -sf /etc/nginx/sites-available/barrens /etc/nginx/sites-enabled/
 nginx -t && systemctl reload nginx
 
 echo "=== 8. 申请 SSL 证书 ==="
-certbot --nginx -d barrens.hilberthiggs.com --non-interactive --agree-tos --email hilbertzhai@futunn.com || echo "SSL 暂未配置，等 DNS 生效后再运行: certbot --nginx -d barrens.hilberthiggs.com"
+certbot --nginx -d barrens.hilberthiggs.com --non-interactive --agree-tos --register-unsafely-without-email || echo "SSL 暂未配置，等 DNS 生效后再运行: certbot --nginx -d barrens.hilberthiggs.com"
 
 echo ""
 echo "✅ 部署完成！"
