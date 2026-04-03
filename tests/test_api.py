@@ -56,14 +56,14 @@ def test_battle_daily_limit(client):
     pid = player["id"]
     npc = client.get("/api/player/by-name/训练假人").json()
 
-    # 打 10 次
-    for _ in range(10):
+    # 打 3 次
+    for _ in range(3):
         resp = client.post("/api/battle/challenge", json={
             "attacker_id": pid, "defender_id": npc["id"],
         })
         assert resp.status_code == 200
 
-    # 第 11 次应该失败
+    # 第 4 次应该失败
     resp = client.post("/api/battle/challenge", json={
         "attacker_id": pid, "defender_id": npc["id"],
     })
