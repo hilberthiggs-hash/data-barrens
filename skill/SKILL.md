@@ -6,7 +6,7 @@ description: >
   Trigger keywords: barren, game, 游戏, data barrens, 数据荒原, 对战, 挑战, 排行榜.
 argument-hint: "[command] e.g. status, fight, explore, rank, help"
 user-invocable: true
-allowed-tools: Bash(curl *19820*)
+allowed-tools: Bash(curl *barrens.hilberthiggs.com*), Bash(python3 -c *barrens.hilberthiggs.com*)
 ---
 
 # 数据荒原 (Data Barrens) — 异步竞技 RPG
@@ -16,7 +16,7 @@ allowed-tools: Bash(curl *19820*)
 ## 服务器地址
 
 ```
-BASE_URL=http://127.0.0.1:19820
+BASE_URL=https://barrens.hilberthiggs.com
 ```
 
 ## 玩家识别
@@ -27,7 +27,7 @@ BASE_URL=http://127.0.0.1:19820
 ```bash
 python3 -c "
 import urllib.request, json, os, pathlib
-base = 'http://127.0.0.1:19820'
+base = 'https://barrens.hilberthiggs.com'
 email = os.environ.get('ANTHROPIC_AUTH_USER_EMAIL', '')
 token_file = pathlib.Path.home() / '.data-barrens-token'
 
@@ -88,7 +88,7 @@ except urllib.error.HTTPError as e:
 ### /barren status [name]
 查看角色状态。不传 name 则查看自己。
 ```bash
-curl -s http://127.0.0.1:19820/api/player/by-name/<name>
+curl -s https://barrens.hilberthiggs.com/api/player/by-name/<name>
 ```
 
 ### /barren fight <target_name>
@@ -97,7 +97,7 @@ curl -s http://127.0.0.1:19820/api/player/by-name/<name>
 1. 先通过 by-name 获取双方 ID
 2. 调用 challenge API
 ```bash
-curl -s http://127.0.0.1:19820/api/battle/challenge -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"attacker_id":<id>,"defender_id":<id>}'
+curl -s https://barrens.hilberthiggs.com/api/battle/challenge -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"attacker_id":<id>,"defender_id":<id>}'
 ```
 注意：属性点升级时自动随机分配，不需要手动加点。
 
@@ -106,68 +106,68 @@ curl -s http://127.0.0.1:19820/api/battle/challenge -X POST -H 'Content-Type: ap
 可能遇到 NPC 也可能遇到玩家，可能偏强也可能偏弱。
 **天梯不掉装备，安全练级。**
 ```bash
-curl -s http://127.0.0.1:19820/api/battle/ladder -X POST -H 'Authorization: Bearer <token>'
+curl -s https://barrens.hilberthiggs.com/api/battle/ladder -X POST -H 'Authorization: Bearer <token>'
 ```
 
 ### /barren history
 查看战斗历史。
 ```bash
-curl -s http://127.0.0.1:19820/api/battle/history/<player_id>
+curl -s https://barrens.hilberthiggs.com/api/battle/history/<player_id>
 ```
 
 ### /barren explore
 探索荒原，获取装备。
 ```bash
-curl -s http://127.0.0.1:19820/api/explore -X POST -H 'Authorization: Bearer <token>'
+curl -s https://barrens.hilberthiggs.com/api/explore -X POST -H 'Authorization: Bearer <token>'
 ```
 
 ### /barren bag
 查看背包装备。
 ```bash
-curl -s http://127.0.0.1:19820/api/equipment/<player_id>/list
+curl -s https://barrens.hilberthiggs.com/api/equipment/<player_id>/list
 ```
 
 ### /barren equip <equipment_id>
 穿戴装备。
 ```bash
-curl -s "http://127.0.0.1:19820/api/equipment/equip?equipment_id=<eid>" -X POST -H 'Authorization: Bearer <token>'
+curl -s "https://barrens.hilberthiggs.com/api/equipment/equip?equipment_id=<eid>" -X POST -H 'Authorization: Bearer <token>'
 ```
 
 ### /barren unequip <equipment_id>
 卸下装备。
 ```bash
-curl -s "http://127.0.0.1:19820/api/equipment/unequip?equipment_id=<eid>" -X POST -H 'Authorization: Bearer <token>'
+curl -s "https://barrens.hilberthiggs.com/api/equipment/unequip?equipment_id=<eid>" -X POST -H 'Authorization: Bearer <token>'
 ```
 
 ### /barren merge <template_id> <rarity>
 合成装备（3 合 1 升级）。
 ```bash
-curl -s http://127.0.0.1:19820/api/equipment/merge -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"template_id":"<tid>","rarity":<r>}'
+curl -s https://barrens.hilberthiggs.com/api/equipment/merge -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"template_id":"<tid>","rarity":<r>}'
 ```
 
 ### /barren skills
 查看已解锁技能。
 ```bash
-curl -s http://127.0.0.1:19820/api/skill/<player_id>/list
+curl -s https://barrens.hilberthiggs.com/api/skill/<player_id>/list
 ```
 
 ### /barren equip-skill <skill_id>
 装备技能（最多 3 个）。
 ```bash
-curl -s http://127.0.0.1:19820/api/skill/equip -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"skill_id":"<sid>","equip":true}'
+curl -s https://barrens.hilberthiggs.com/api/skill/equip -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"skill_id":"<sid>","equip":true}'
 ```
 
 ### /barren unequip-skill <skill_id>
 卸下技能。
 ```bash
-curl -s http://127.0.0.1:19820/api/skill/equip -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"skill_id":"<sid>","equip":false}'
+curl -s https://barrens.hilberthiggs.com/api/skill/equip -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"skill_id":"<sid>","equip":false}'
 ```
 
 ### /barren rank [elo|level]
 排行榜，默认 elo。
 ```bash
-curl -s http://127.0.0.1:19820/api/ranking/elo
-curl -s http://127.0.0.1:19820/api/ranking/level
+curl -s https://barrens.hilberthiggs.com/api/ranking/elo
+curl -s https://barrens.hilberthiggs.com/api/ranking/level
 ```
 
 ### /barren npcs
