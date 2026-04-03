@@ -1,5 +1,5 @@
 ---
-name: data-barrens
+name: barren
 description: >
   数据荒原 (Data Barrens) - 异步竞技 RPG 游戏。通过 /barren 命令与游戏服务器交互。
   支持：注册角色、查看状态、挑战对战、探索装备、排行榜等。
