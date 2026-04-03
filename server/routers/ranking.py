@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/ranking", tags=["ranking"])
 
 @router.get("/elo", response_model=list[RankingEntry])
 def api_elo_ranking(limit: int = 20, db: Session = Depends(get_db)):
-    players = db.query(Player).order_by(Player.elo.desc()).limit(limit).all()
+    players = db.query(Player).filter(Player.is_npc == False).order_by(Player.elo.desc()).limit(limit).all()
     return [
         RankingEntry(
             rank=i + 1,
@@ -25,7 +25,7 @@ def api_elo_ranking(limit: int = 20, db: Session = Depends(get_db)):
 
 @router.get("/level", response_model=list[RankingEntry])
 def api_level_ranking(limit: int = 20, db: Session = Depends(get_db)):
-    players = db.query(Player).order_by(Player.level.desc(), Player.exp.desc()).limit(limit).all()
+    players = db.query(Player).filter(Player.is_npc == False).order_by(Player.level.desc(), Player.exp.desc()).limit(limit).all()
     return [
         RankingEntry(
             rank=i + 1,

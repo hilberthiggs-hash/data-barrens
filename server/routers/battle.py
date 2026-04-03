@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from server.db import get_db
-from server.models import Player, BattleLog, Equipment, PlayerSkill
+from server.models import Player, BattleLog, Equipment, PlayerSkill, Notification
 from server.schemas import ChallengeRequest, BattleLogOut, BattleRound, PlayerBrief, MessageOut
 from server.services.battle_engine import build_fighter, run_battle, calc_elo_change, calc_exp_reward
 from server.services.player_service import consume_stamina, consume_battle_count, add_exp, get_player
@@ -48,12 +48,24 @@ def _loot_equipment(db: Session, winner: Player, loser: Player) -> str | None:
     stolen = random.choices(lootable, weights=weights, k=1)[0]
 
     # 转移所有权
+    from server.schemas import RARITY_NAMES
+    loot_name = f"[{RARITY_NAMES[stolen.rarity]}]{stolen.name}"
+
     stolen.player_id = winner.id
     stolen.equipped = False
+
+    # 通知被抢的人
+    db.add(Notification(
+        player_id=loser.id,
+        message=f"{winner.name} 击败了你，抢走了你的 {loot_name}！",
+    ))
     db.commit()
 
-    from server.schemas import RARITY_NAMES
-    return f"[{RARITY_NAMES[stolen.rarity]}]{stolen.name}"
+    # 胜者自动择优穿戴
+    from server.services.equipment_service import auto_equip_best
+    auto_equip_best(db, winner)
+
+    return loot_name
 
 
 def _execute_battle(db: Session, attacker: Player, defender: Player, allow_loot: bool = False):

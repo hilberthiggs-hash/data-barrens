@@ -61,8 +61,19 @@ except urllib.error.HTTPError as e:
 ```
 - 输出第一行如果是 `NEW_PLAYER`：新注册，token 已自动保存到 `~/.data-barrens-token`，展示欢迎 + 角色卡片
 - 否则是 JSON：已有角色，包含 `player` 和 `token`
-- **所有写操作（战斗/探索/装备/技能）必须在 curl 中加上 `-H 'Authorization: Bearer <token>'`**
+- **所有写操作必须在 curl 中加上 `-H 'Authorization: Bearer <token>'`**
 - token 从上面脚本输出中获取
+
+**身份确认后，立即检查未读通知：**
+```bash
+curl -s https://barrens.hilberthiggs.com/api/player/notifications/unread -H 'Authorization: Bearer <token>'
+```
+如果 `notifications` 数组非空，**必须先展示通知再执行用户命令**，格式：
+```
+📢 ═══ 荒原快报 ═══
+  ⚠️ xxx 击败了你，抢走了你的 [绿]铁剑！
+═══════════════════
+```
 
 ## 认证规则
 
@@ -116,27 +127,16 @@ curl -s https://barrens.hilberthiggs.com/api/battle/history/<player_id>
 ```
 
 ### /barren explore
-探索荒原，获取装备。
+探索荒原，获取装备。**装备获得后自动择优穿戴**，无需手动操作。
 ```bash
 curl -s https://barrens.hilberthiggs.com/api/explore -X POST -H 'Authorization: Bearer <token>'
 ```
+API 返回 `auto_equip` 数组，非空时展示自动穿戴变更（如 "weapon: [白]铁剑 → [绿]铁剑"）。
 
 ### /barren bag
-查看背包装备。
+查看背包装备（含已穿戴和未穿戴）。
 ```bash
 curl -s https://barrens.hilberthiggs.com/api/equipment/<player_id>/list
-```
-
-### /barren equip <equipment_id>
-穿戴装备。
-```bash
-curl -s "https://barrens.hilberthiggs.com/api/equipment/equip?equipment_id=<eid>" -X POST -H 'Authorization: Bearer <token>'
-```
-
-### /barren unequip <equipment_id>
-卸下装备。
-```bash
-curl -s "https://barrens.hilberthiggs.com/api/equipment/unequip?equipment_id=<eid>" -X POST -H 'Authorization: Bearer <token>'
 ```
 
 ### /barren merge <template_id> <rarity>

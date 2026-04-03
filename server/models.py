@@ -102,9 +102,20 @@ class BattleLog(Base):
     attacker_exp_gained: Mapped[int] = mapped_column(Integer, default=0)
     defender_exp_gained: Mapped[int] = mapped_column(Integer, default=0)
 
-    # 是否为复仇战
     is_revenge: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, default=datetime.datetime.utcnow
+    )
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    player_id: Mapped[int] = mapped_column(Integer, ForeignKey("players.id"), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    read: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, default=datetime.datetime.utcnow
     )

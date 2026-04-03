@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from server.db import get_db
+from server.models import Notification
 from server.schemas import PlayerRegister, AllocatePoints, PlayerOut, MessageOut
+from server.auth import get_current_player
 from server.services.player_service import (
     register_player, get_player, get_player_by_name, get_player_by_email,
     allocate_points, refresh_stamina, to_player_out,
@@ -62,3 +64,21 @@ def api_allocate_points(player_id: int, data: AllocatePoints, db: Session = Depe
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return to_player_out(player)
+
+
+@router.get("/notifications/unread")
+def api_get_notifications(db: Session = Depends(get_db), me: Player = Depends(get_current_player)):
+    """获取未读通知并标记已读"""
+    notifs = db.query(Notification).filter(
+        Notification.player_id == me.id,
+        Notification.read == False,
+    ).order_by(Notification.created_at.desc()).all()
+
+    messages = [n.message for n in notifs]
+
+    # 标记已读
+    for n in notifs:
+        n.read = True
+    db.commit()
+
+    return {"notifications": messages}

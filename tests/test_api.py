@@ -80,26 +80,23 @@ def test_battle_daily_limit(client):
     assert "对战次数" in resp.json()["detail"]
 
 
-def test_explore_and_equip(client):
+def test_explore_auto_equip(client):
+    """探索后自动择优穿戴"""
     player = _register(client, "explorer")
     pid = player["id"]
     token = player["api_token"]
 
     resp = client.post("/api/explore", headers=_auth(token))
     assert resp.status_code == 200
-    equip_id = resp.json()["equipment"]["id"]
     assert "stamina_remaining" in resp.json()
+    assert "auto_equip" in resp.json()
 
-    resp = client.post(f"/api/equipment/equip?equipment_id={equip_id}", headers=_auth(token))
-    assert resp.status_code == 200
-    assert resp.json()["equipped"] is True
-
+    # 第一件装备应该自动穿戴
     resp = client.get(f"/api/equipment/{pid}/list")
     assert resp.status_code == 200
-
-    resp = client.post(f"/api/equipment/unequip?equipment_id={equip_id}", headers=_auth(token))
-    assert resp.status_code == 200
-    assert resp.json()["equipped"] is False
+    equips = resp.json()
+    assert len(equips) >= 1
+    assert any(e["equipped"] for e in equips)
 
 
 def test_ranking(client):

@@ -8,6 +8,7 @@ from server.models import Player
 from server.schemas import EquipmentOut, RARITY_NAMES
 from server.services.player_service import consume_stamina
 from server.services.explore_service import explore
+from server.services.equipment_service import auto_equip_best
 from server.auth import get_current_player
 from server.game_data.lore import EXPLORE_TEXTS
 from server.config import EXPLORE_STAMINA_COST
@@ -19,6 +20,7 @@ class ExploreResult(BaseModel):
     narrative: str
     equipment: EquipmentOut
     stamina_remaining: int
+    auto_equip: list[str] = []  # 自动穿戴变更
 
 
 @router.post("", response_model=ExploreResult)
@@ -30,8 +32,12 @@ def api_explore(db: Session = Depends(get_db), me: Player = Depends(get_current_
     rarity_name = RARITY_NAMES[equip.rarity]
     narrative += f"\n发现了 [{rarity_name}] {equip.name}！"
 
+    # 自动择优穿戴
+    equip_changes = auto_equip_best(db, me)
+
     return ExploreResult(
         narrative=narrative,
+        auto_equip=equip_changes,
         equipment=EquipmentOut(
             id=equip.id,
             template_id=equip.template_id,
