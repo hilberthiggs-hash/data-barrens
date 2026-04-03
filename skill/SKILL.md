@@ -1,10 +1,10 @@
 ---
 name: data-barrens
 description: >
-  数据荒原 (Data Barrens) - 异步竞技 RPG 游戏。通过 /game 命令与游戏服务器交互。
+  数据荒原 (Data Barrens) - 异步竞技 RPG 游戏。通过 /barren 命令与游戏服务器交互。
   支持：注册角色、查看状态、挑战对战、探索装备、排行榜等。
-  Trigger keywords: game, 游戏, data barrens, 数据荒原, 对战, 挑战, 排行榜.
-argument-hint: "[command] e.g. register, status, fight, explore, rank, help"
+  Trigger keywords: barren, game, 游戏, data barrens, 数据荒原, 对战, 挑战, 排行榜.
+argument-hint: "[command] e.g. status, fight, explore, rank, help"
 user-invocable: true
 allowed-tools: Bash(curl *19820*)
 ---
@@ -23,7 +23,7 @@ BASE_URL=http://127.0.0.1:19820
 
 **通过环境变量 `$ANTHROPIC_AUTH_USER_EMAIL` 自动识别身份，一人一号，全自动注册。**
 
-每次 /game 被触发时，先用邮箱查询是否已注册：
+每次 /barren 被触发时，先用邮箱查询是否已注册：
 ```bash
 curl -s http://127.0.0.1:19820/api/player/by-email/$ANTHROPIC_AUTH_USER_EMAIL
 ```
@@ -39,28 +39,28 @@ curl -s http://127.0.0.1:19820/api/player/by-email/$ANTHROPIC_AUTH_USER_EMAIL
 
 ## 命令映射
 
-用户输入 `/game <cmd>` 时，按以下方式处理：
+用户输入 `/barren <cmd>` 时，按以下方式处理：
 
-### /game help
+### /barren help
 显示所有可用命令列表和简要说明。
 
-### /game register
-注册是全自动的，不需要用户手动触发。首次使用任何 /game 命令时自动完成。
-如果用户单独输入 /game register，告诉他们"进入荒原不需要手续，直接开始探索吧"，然后展示角色卡片。
+### /barren register
+注册是全自动的，不需要用户手动触发。首次使用任何 /barren 命令时自动完成。
+如果用户单独输入 /barren register，告诉他们"进入荒原不需要手续，直接开始探索吧"，然后展示角色卡片。
 
-### /game status [name]
+### /barren status [name]
 查看角色状态。不传 name 则查看自己。
 ```bash
 curl -s http://127.0.0.1:19820/api/player/by-name/<name>
 ```
 
-### /game allocate <str> <agi> <int> <vit>
+### /barren allocate <str> <agi> <int> <vit>
 分配属性点。先通过 by-name 获取 player_id。
 ```bash
 curl -s http://127.0.0.1:19820/api/player/<id>/allocate -X POST -H 'Content-Type: application/json' -d '{"str":<n>,"agi":<n>,"int":<n>,"vit":<n>}'
 ```
 
-### /game fight <target_name>
+### /barren fight <target_name>
 挑战目标玩家或 NPC。
 1. 先通过 by-name 获取双方 ID
 2. 调用 challenge API
@@ -68,74 +68,74 @@ curl -s http://127.0.0.1:19820/api/player/<id>/allocate -X POST -H 'Content-Type
 curl -s http://127.0.0.1:19820/api/battle/challenge -X POST -H 'Content-Type: application/json' -d '{"attacker_id":<id>,"defender_id":<id>}'
 ```
 
-### /game revenge <battle_id>
+### /barren revenge <battle_id>
 对某场战斗发起复仇（免体力）。
 ```bash
 curl -s "http://127.0.0.1:19820/api/battle/revenge/<battle_id>?player_id=<id>" -X POST
 ```
 
-### /game history
+### /barren history
 查看战斗历史。
 ```bash
 curl -s http://127.0.0.1:19820/api/battle/history/<player_id>
 ```
 
-### /game explore
+### /barren explore
 探索荒原，获取装备。
 ```bash
 curl -s http://127.0.0.1:19820/api/explore/<player_id> -X POST
 ```
 
-### /game bag
+### /barren bag
 查看背包装备。
 ```bash
 curl -s http://127.0.0.1:19820/api/equipment/<player_id>/list
 ```
 
-### /game equip <equipment_id>
+### /barren equip <equipment_id>
 穿戴装备。
 ```bash
 curl -s "http://127.0.0.1:19820/api/equipment/equip?player_id=<id>&equipment_id=<eid>" -X POST
 ```
 
-### /game unequip <equipment_id>
+### /barren unequip <equipment_id>
 卸下装备。
 ```bash
 curl -s "http://127.0.0.1:19820/api/equipment/unequip?player_id=<id>&equipment_id=<eid>" -X POST
 ```
 
-### /game merge <template_id> <rarity>
+### /barren merge <template_id> <rarity>
 合成装备（3 合 1 升级）。
 ```bash
 curl -s http://127.0.0.1:19820/api/equipment/merge -X POST -H 'Content-Type: application/json' -d '{"player_id":<id>,"template_id":"<tid>","rarity":<r>}'
 ```
 
-### /game skills
+### /barren skills
 查看已解锁技能。
 ```bash
 curl -s http://127.0.0.1:19820/api/skill/<player_id>/list
 ```
 
-### /game equip-skill <skill_id>
+### /barren equip-skill <skill_id>
 装备技能（最多 3 个）。
 ```bash
 curl -s http://127.0.0.1:19820/api/skill/equip -X POST -H 'Content-Type: application/json' -d '{"player_id":<id>,"skill_id":"<sid>","equip":true}'
 ```
 
-### /game unequip-skill <skill_id>
+### /barren unequip-skill <skill_id>
 卸下技能。
 ```bash
 curl -s http://127.0.0.1:19820/api/skill/equip -X POST -H 'Content-Type: application/json' -d '{"player_id":<id>,"skill_id":"<sid>","equip":false}'
 ```
 
-### /game rank [elo|level]
+### /barren rank [elo|level]
 排行榜，默认 elo。
 ```bash
 curl -s http://127.0.0.1:19820/api/ranking/elo
 curl -s http://127.0.0.1:19820/api/ranking/level
 ```
 
-### /game npcs
+### /barren npcs
 列出所有 NPC（is_npc=true），方便玩家选择挑战对象。
 通过排行榜接口获取，过滤 is_npc 为 true 的。
 
