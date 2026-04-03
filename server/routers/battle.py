@@ -35,35 +35,34 @@ def _loot_equipment(db: Session, winner: Player, loser: Player) -> str | None:
     if loser.is_npc:
         return None  # NPC 不掉装备
 
-    # 败者未装备的背包装备
-    lootable = [e for e in loser.equipments if not e.equipped]
-    if not lootable:
+    # 败者已穿戴的装备中随机一件
+    equipped = [e for e in loser.equipments if e.equipped]
+    if not equipped:
         return None
 
     if random.random() >= LOOT_CHANCE:
         return None
 
-    # 随机抢一件，稀有度越高越难抢（权重反比）
-    weights = [max(1, 5 - e.rarity) for e in lootable]
-    stolen = random.choices(lootable, weights=weights, k=1)[0]
+    stolen = random.choice(equipped)
 
-    # 转移所有权
     from server.schemas import RARITY_NAMES
     loot_name = f"[{RARITY_NAMES[stolen.rarity]}]{stolen.name}"
 
+    # 转移所有权
     stolen.player_id = winner.id
     stolen.equipped = False
 
     # 通知被抢的人
     db.add(Notification(
         player_id=loser.id,
-        message=f"{winner.name} 击败了你，抢走了你的 {loot_name}！",
+        message=f"{winner.name} 击败了你，抢走了你身上的 {loot_name}！",
     ))
     db.commit()
 
-    # 胜者自动择优穿戴
+    # 双方自动择优穿戴
     from server.services.equipment_service import auto_equip_best
     auto_equip_best(db, winner)
+    auto_equip_best(db, loser)
 
     return loot_name
 
@@ -215,8 +214,7 @@ def api_ladder(db: Session = Depends(get_db), me: Player = Depends(get_current_p
     attacker = me
 
     try:
-        consume_battle_count(db, attacker)
-        consume_stamina(db, attacker, 1)
+        consume_stamina(db, attacker, 2)  # 天梯消耗 2 体力，不消耗战斗次数
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

@@ -68,16 +68,28 @@ def test_ladder(client):
 
 
 def test_battle_daily_limit(client):
-    player = _register(client, "limittest")
-    token = player["api_token"]
+    """对战次数限制（仅 fight 消耗，ladder 不消耗）"""
+    p1 = _register(client, "limittest1")
+    p2 = _register(client, "limittest2")
 
     for _ in range(3):
-        resp = client.post("/api/battle/ladder", headers=_auth(token))
+        resp = client.post("/api/battle/challenge",
+            headers=_auth(p1["api_token"]),
+            json={"attacker_id": p1["id"], "defender_id": p2["id"]},
+        )
         assert resp.status_code == 200
 
-    resp = client.post("/api/battle/ladder", headers=_auth(token))
+    # 第 4 次应该失败
+    resp = client.post("/api/battle/challenge",
+        headers=_auth(p1["api_token"]),
+        json={"attacker_id": p1["id"], "defender_id": p2["id"]},
+    )
     assert resp.status_code == 400
     assert "对战次数" in resp.json()["detail"]
+
+    # 但 ladder 还能打（不消耗战斗次数）
+    resp = client.post("/api/battle/ladder", headers=_auth(p1["api_token"]))
+    assert resp.status_code == 200
 
 
 def test_explore_auto_equip(client):
