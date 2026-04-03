@@ -23,19 +23,38 @@ BASE_URL=http://127.0.0.1:19820
 
 **通过环境变量 `$ANTHROPIC_AUTH_USER_EMAIL` 自动识别身份，一人一号，全自动注册。**
 
-每次 /barren 被触发时，先用邮箱查询是否已注册：
+每次 /barren 被触发时，用下面这个一体化脚本检查身份并自动注册（直接整段执行）：
 ```bash
-curl -s http://127.0.0.1:19820/api/player/by-email/$ANTHROPIC_AUTH_USER_EMAIL
+python3 -c "
+import urllib.request, json, os
+base = 'http://127.0.0.1:19820'
+email = os.environ.get('ANTHROPIC_AUTH_USER_EMAIL', '')
+# 查询是否已注册
+try:
+    resp = urllib.request.urlopen(f'{base}/api/player/by-email/{email}')
+    player = json.loads(resp.read())
+    print(json.dumps(player, ensure_ascii=False))
+except urllib.error.HTTPError as e:
+    if e.code == 404:
+        # 未注册，自动注册
+        name = email.split('@')[0]
+        user_id = ''
+        try:
+            user_id = json.load(open(os.path.expanduser('~/.claude.json')))['userID']
+        except: pass
+        data = json.dumps({'email': email, 'name': name, 'user_id': user_id}).encode()
+        req = urllib.request.Request(f'{base}/api/player/register', data=data, headers={'Content-Type': 'application/json'})
+        resp = urllib.request.urlopen(req)
+        player = json.loads(resp.read())
+        print('NEW_PLAYER')
+        print(json.dumps(player, ensure_ascii=False))
+    else:
+        print(f'ERROR: {e.code}')
+"
 ```
-- 如果返回 200：已注册，直接使用返回的 player id 和 name，继续执行命令
-- 如果返回 404：未注册，**立即自动注册**，不要问用户任何问题：
-  - name = 邮箱 @ 前面的部分（如 hilbertzhai@futunn.com → hilbertzhai）
-  - user_id 从 ~/.claude.json 的 userID 字段获取，用于自动生成 buddy 外观
-  ```bash
-  USER_ID=$(python3 -c "import json; print(json.load(open('$HOME/.claude.json'))['userID'])")
-  curl -s http://127.0.0.1:19820/api/player/register -X POST -H 'Content-Type: application/json' -d '{"email":"'$ANTHROPIC_AUTH_USER_EMAIL'","name":"'${ANTHROPIC_AUTH_USER_EMAIL%%@*}'","user_id":"'$USER_ID'"}'
-  ```
-  注册成功后展示欢迎信息和角色卡片，然后继续执行用户的命令。
+- 输出第一行如果是 `NEW_PLAYER`：说明是新注册的，展示欢迎信息 + 角色卡片
+- 否则直接是 JSON：已有角色，解析后继续执行命令
+- 从返回的 JSON 中获取 `id`（player_id）和 `name`，后续所有操作使用这个 id
 
 ## 命令映射
 
