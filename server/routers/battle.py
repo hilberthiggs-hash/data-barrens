@@ -55,7 +55,7 @@ def _loot_equipment(db: Session, winner: Player, loser: Player) -> str | None:
     return f"[{RARITY_NAMES[stolen.rarity]}]{stolen.name}"
 
 
-def _execute_battle(db: Session, attacker: Player, defender: Player):
+def _execute_battle(db: Session, attacker: Player, defender: Player, allow_loot: bool = False):
     # 构建战斗双方
     a_bonuses = _get_equipped_bonuses(attacker)
     d_bonuses = _get_equipped_bonuses(defender)
@@ -82,7 +82,8 @@ def _execute_battle(db: Session, attacker: Player, defender: Player):
         add_exp(db, defender, exp_l)
         a_elo_change, d_elo_change = elo_w, elo_l
         a_exp, d_exp = exp_w, exp_l
-        loot_desc = _loot_equipment(db, attacker, defender)
+        if allow_loot:
+            loot_desc = _loot_equipment(db, attacker, defender)
     elif winner_name == defender.name:
         elo_w, elo_l = calc_elo_change(defender.elo, attacker.elo)
         exp_w, exp_l = calc_exp_reward(defender.level, attacker.level)
@@ -92,7 +93,8 @@ def _execute_battle(db: Session, attacker: Player, defender: Player):
         add_exp(db, attacker, exp_l)
         a_elo_change, d_elo_change = elo_l, elo_w
         a_exp, d_exp = exp_l, exp_w
-        loot_desc = _loot_equipment(db, defender, attacker)
+        if allow_loot:
+            loot_desc = _loot_equipment(db, defender, attacker)
     else:
         a_elo_change, d_elo_change = 0, 0
         a_exp, d_exp = 15, 15
@@ -181,11 +183,14 @@ def api_challenge(data: ChallengeRequest, db: Session = Depends(get_db)):
     if not defender:
         raise HTTPException(status_code=404, detail="防守方不存在")
 
+    if defender.is_npc:
+        raise HTTPException(status_code=400, detail="不能指定挑战 NPC，请用天梯匹配（/barren ladder）")
+
     try:
         consume_battle_count(db, attacker)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    log, rounds, loot_desc = _execute_battle(db, attacker, defender)
+    log, rounds, loot_desc = _execute_battle(db, attacker, defender, allow_loot=True)
     return _log_to_out(db, log, rounds, loot_desc)
 
 

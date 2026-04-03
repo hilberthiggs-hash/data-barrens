@@ -74,7 +74,8 @@ curl -s http://127.0.0.1:19820/api/player/by-name/<name>
 ```
 
 ### /barren fight <target_name>
-挑战指定玩家或 NPC。每日限 3 次对战（不消耗体力）。
+挑战指定**玩家**（不能打 NPC，NPC 只能通过天梯遇到）。每日限 3 次，不消耗体力。
+**输了会掉装备给对方，赢了可能抢对方装备（30%）！**
 1. 先通过 by-name 获取双方 ID
 2. 调用 challenge API
 ```bash
@@ -84,7 +85,8 @@ curl -s http://127.0.0.1:19820/api/battle/challenge -X POST -H 'Content-Type: ap
 
 ### /barren ladder
 天梯随机匹配！自动匹配 ELO 水平相近的对手。每日限 3 次，消耗 1 体力。
-可能遇到 NPC，也可能遇到其他玩家，可能比你强也可能比你弱。
+可能遇到 NPC 也可能遇到玩家，可能偏强也可能偏弱。
+**天梯不掉装备，安全练级。**
 ```bash
 curl -s http://127.0.0.1:19820/api/battle/ladder/<player_id> -X POST
 ```

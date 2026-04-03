@@ -10,21 +10,16 @@ def _register(client, name="hero", species="duck"):
 
 
 def test_full_battle_flow(client):
-    """注册 → 挑战 NPC → 查看日志"""
+    """注册 → 天梯匹配 → 查看日志"""
     player = _register(client, "warrior")
     pid = player["id"]
 
-    npc = client.get("/api/player/by-name/训练假人").json()
-
-    resp = client.post("/api/battle/challenge", json={
-        "attacker_id": pid,
-        "defender_id": npc["id"],
-    })
+    # 天梯匹配（可以打 NPC）
+    resp = client.post(f"/api/battle/ladder/{pid}")
     assert resp.status_code == 200
     battle = resp.json()
     assert len(battle["rounds"]) > 0
     assert battle["attacker"]["name"] == "warrior"
-    assert battle["defender"]["name"] == "训练假人"
     assert "battles_remaining" in battle
     assert "loot" in battle
 
@@ -36,6 +31,29 @@ def test_full_battle_flow(client):
     resp = client.get(f"/api/battle/history/{pid}")
     assert resp.status_code == 200
     assert len(resp.json()) == 1
+
+
+def test_pvp_with_loot(client):
+    """玩家对战有装备掉落"""
+    p1 = _register(client, "fighter1")
+    p2 = _register(client, "fighter2")
+
+    resp = client.post("/api/battle/challenge", json={
+        "attacker_id": p1["id"], "defender_id": p2["id"],
+    })
+    assert resp.status_code == 200
+    battle = resp.json()
+    assert "loot" in battle
+
+
+def test_cannot_challenge_npc(client):
+    """不能指定挑战 NPC"""
+    player = _register(client, "npcfighter")
+    npc = client.get("/api/player/by-name/训练假人").json()
+    resp = client.post("/api/battle/challenge", json={
+        "attacker_id": player["id"], "defender_id": npc["id"],
+    })
+    assert resp.status_code == 400
 
 
 def test_ladder(client):
@@ -51,22 +69,17 @@ def test_ladder(client):
 
 
 def test_battle_daily_limit(client):
-    """对战次数限制"""
+    """对战次数限制（用天梯测试）"""
     player = _register(client, "limittest")
     pid = player["id"]
-    npc = client.get("/api/player/by-name/训练假人").json()
 
-    # 打 3 次
+    # 打 3 次天梯
     for _ in range(3):
-        resp = client.post("/api/battle/challenge", json={
-            "attacker_id": pid, "defender_id": npc["id"],
-        })
+        resp = client.post(f"/api/battle/ladder/{pid}")
         assert resp.status_code == 200
 
     # 第 4 次应该失败
-    resp = client.post("/api/battle/challenge", json={
-        "attacker_id": pid, "defender_id": npc["id"],
-    })
+    resp = client.post(f"/api/battle/ladder/{pid}")
     assert resp.status_code == 400
     assert "对战次数" in resp.json()["detail"]
 
