@@ -21,20 +21,21 @@ BASE_URL=http://127.0.0.1:19820
 
 ## 玩家识别
 
-**通过环境变量 `$ANTHROPIC_AUTH_USER_EMAIL` 自动识别身份，一人一号。**
+**通过环境变量 `$ANTHROPIC_AUTH_USER_EMAIL` 自动识别身份，一人一号，全自动注册。**
 
-每次操作前，先用邮箱查询是否已注册：
+每次 /game 被触发时，先用邮箱查询是否已注册：
 ```bash
 curl -s http://127.0.0.1:19820/api/player/by-email/$ANTHROPIC_AUTH_USER_EMAIL
 ```
-- 如果返回 200：已注册，直接使用返回的 player id 和 name
-- 如果返回 404：未注册，引导用户 `/game register <name>`
-
-注册时自动绑定邮箱，无需用户手动输入。一个邮箱只能注册一个角色。
-
-可选物种: duck, goose, blob, cat, dragon, octopus, owl, penguin, turtle, snail, ghost, axolotl, capybara, cactus, robot, rabbit, mushroom, chonk
-可选眼睛: · ✦ × ◉ @ °
-可选帽子: none, crown, tophat, propeller, halo, wizard, beanie, tinyduck
+- 如果返回 200：已注册，直接使用返回的 player id 和 name，继续执行命令
+- 如果返回 404：未注册，**立即自动注册**，不要问用户任何问题：
+  - name = 邮箱 @ 前面的部分（如 hilbertzhai@futunn.com → hilbertzhai）
+  - user_id 从 ~/.claude.json 的 userID 字段获取，用于自动生成 buddy 外观
+  ```bash
+  USER_ID=$(python3 -c "import json; print(json.load(open('$HOME/.claude.json'))['userID'])")
+  curl -s http://127.0.0.1:19820/api/player/register -X POST -H 'Content-Type: application/json' -d '{"email":"'$ANTHROPIC_AUTH_USER_EMAIL'","name":"'${ANTHROPIC_AUTH_USER_EMAIL%%@*}'","user_id":"'$USER_ID'"}'
+  ```
+  注册成功后展示欢迎信息和角色卡片，然后继续执行用户的命令。
 
 ## 命令映射
 
@@ -43,15 +44,9 @@ curl -s http://127.0.0.1:19820/api/player/by-email/$ANTHROPIC_AUTH_USER_EMAIL
 ### /game help
 显示所有可用命令列表和简要说明。
 
-### /game register <name>
-注册新角色。自动绑定邮箱，自动继承 /buddy 的外观。
-1. 先读取 `~/.claude.json` 获取 `userID` 字段
-2. 注册时传入 `user_id`，server 会自动算出与 /buddy 一致的 species/eye/hat/shiny
-```bash
-USER_ID=$(python3 -c "import json; print(json.load(open('$HOME/.claude.json'))['userID'])")
-curl -s http://127.0.0.1:19820/api/player/register -X POST -H 'Content-Type: application/json' -d '{"email":"'$ANTHROPIC_AUTH_USER_EMAIL'","name":"<name>","user_id":"'$USER_ID'"}'
-```
-用户不需要手动选 buddy 外观，直接继承他们已有的 /buddy 形象。
+### /game register
+注册是全自动的，不需要用户手动触发。首次使用任何 /game 命令时自动完成。
+如果用户单独输入 /game register，告诉他们"进入荒原不需要手续，直接开始探索吧"，然后展示角色卡片。
 
 ### /game status [name]
 查看角色状态。不传 name 则查看自己。
