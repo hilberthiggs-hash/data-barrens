@@ -44,10 +44,14 @@ curl -s http://127.0.0.1:19820/api/player/by-email/$ANTHROPIC_AUTH_USER_EMAIL
 显示所有可用命令列表和简要说明。
 
 ### /game register <name>
-注册新角色。自动绑定当前邮箱，询问 buddy 外观偏好。
+注册新角色。自动绑定邮箱，自动继承 /buddy 的外观。
+1. 先读取 `~/.claude.json` 获取 `userID` 字段
+2. 注册时传入 `user_id`，server 会自动算出与 /buddy 一致的 species/eye/hat/shiny
 ```bash
-curl -s http://127.0.0.1:19820/api/player/register -X POST -H 'Content-Type: application/json' -d '{"email":"'$ANTHROPIC_AUTH_USER_EMAIL'","name":"<name>","buddy_species":"<species>","buddy_eye":"<eye>","buddy_hat":"<hat>"}'
+USER_ID=$(python3 -c "import json; print(json.load(open('$HOME/.claude.json'))['userID'])")
+curl -s http://127.0.0.1:19820/api/player/register -X POST -H 'Content-Type: application/json' -d '{"email":"'$ANTHROPIC_AUTH_USER_EMAIL'","name":"<name>","user_id":"'$USER_ID'"}'
 ```
+用户不需要手动选 buddy 外观，直接继承他们已有的 /buddy 形象。
 
 ### /game status [name]
 查看角色状态。不传 name 则查看自己。

@@ -47,6 +47,12 @@ def api_get_player_by_email(email: str, db: Session = Depends(get_db)):
     return to_player_out(player)
 
 
+@router.get("/resolve-buddy/{user_id}")
+def api_resolve_buddy(user_id: str):
+    from server.services.buddy_resolver import resolve_buddy
+    return resolve_buddy(user_id)
+
+
 @router.post("/{player_id}/allocate", response_model=PlayerOut)
 def api_allocate_points(player_id: int, data: AllocatePoints, db: Session = Depends(get_db)):
     try:

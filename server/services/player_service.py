@@ -19,13 +19,27 @@ def register_player(db: Session, data: PlayerRegister) -> Player:
     if existing_name:
         raise ValueError(f"名字 '{data.name}' 已被占用")
 
+    # 如果传了 user_id，自动从 Claude Code buddy 算法生成外观
+    if data.user_id:
+        from server.services.buddy_resolver import resolve_buddy
+        buddy = resolve_buddy(data.user_id)
+        species = buddy["species"]
+        eye = buddy["eye"]
+        hat = buddy["hat"]
+        shiny = buddy["shiny"]
+    else:
+        species = data.buddy_species
+        eye = data.buddy_eye
+        hat = data.buddy_hat
+        shiny = data.buddy_shiny
+
     player = Player(
         email=data.email,
         name=data.name,
-        buddy_species=data.buddy_species,
-        buddy_eye=data.buddy_eye,
-        buddy_hat=data.buddy_hat,
-        buddy_shiny=data.buddy_shiny,
+        buddy_species=species,
+        buddy_eye=eye,
+        buddy_hat=hat,
+        buddy_shiny=shiny,
         **INITIAL_STATS,
     )
     db.add(player)

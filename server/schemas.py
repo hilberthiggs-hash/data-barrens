@@ -7,6 +7,7 @@ from datetime import datetime
 class PlayerRegister(BaseModel):
     email: str = Field(min_length=1, max_length=128)  # 唯一身份标识
     name: str = Field(min_length=1, max_length=32)
+    user_id: str | None = None  # Claude Code userId，传入则自动生成 buddy 外观
     buddy_species: str = "blob"
     buddy_eye: str = "·"
     buddy_hat: str = "none"
