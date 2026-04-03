@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from server.db import get_db
-from server.models import Notification
+from server.models import Player, Notification
 from server.schemas import PlayerRegister, AllocatePoints, PlayerOut, MessageOut
 from server.auth import get_current_player
 from server.services.player_service import (
