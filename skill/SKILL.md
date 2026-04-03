@@ -231,8 +231,8 @@ Hat 行替换（替换 sprite 第一行空行）：
  <  ✦  ✦  >        Lv.15 | ELO 1523
  (   ~~   )        ⚡体力 18/20
   `-vvvv-´         ─────────────────
-                   STR 25 | AGI 18
-                   INT 12 | VIT 20
+                   力量 25 | 敏捷 18
+                   智力 12 | 体质 20
                    未分配: 3
 ───────────────────────────────────────
   ⚔️ 技能: 重击 / 破甲 / 狂暴
@@ -268,7 +268,7 @@ Hat 行替换（替换 sprite 第一行空行）：
    发现了 [蓝] 暗影匕首！
 
    暗影匕首 (武器)
-   AGI +16 | STR +4
+   敏捷 +16 | 力量 +4
    稀有度: ★★★☆☆
 ```
 
@@ -282,6 +282,9 @@ Hat 行替换（替换 sprite 第一行空行）：
   #4  流浪字节      Lv.5   ELO 900   👻
   #5  训练假人      Lv.1   ELO 800   🤖
 ```
+
+### 属性中文映射（必须使用中文显示）
+str → 力量, agi → 敏捷, int → 智力, vit → 体质
 
 ### 物种 Emoji 映射
 duck→🦆 goose→🪿 blob→🫧 cat→🐱 dragon→🐉 octopus→🐙 owl→🦉 penguin→🐧 turtle→🐢 snail→🐌 ghost→👻 axolotl→🦎 capybara→🦫 cactus→🌵 robot→🤖 rabbit→🐰 mushroom→🍄 chonk→🐖
