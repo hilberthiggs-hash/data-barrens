@@ -200,6 +200,7 @@ def api_ladder(player_id: int, db: Session = Depends(get_db)):
 
     try:
         consume_battle_count(db, attacker)
+        consume_stamina(db, attacker, 1)  # 天梯消耗 1 体力
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
