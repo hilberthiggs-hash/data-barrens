@@ -73,30 +73,20 @@ except urllib.error.HTTPError as e:
 curl -s http://127.0.0.1:19820/api/player/by-name/<name>
 ```
 
-### /barren allocate <str> <agi> <int> <vit>
-分配属性点。先通过 by-name 获取 player_id。
-```bash
-curl -s http://127.0.0.1:19820/api/player/<id>/allocate -X POST -H 'Content-Type: application/json' -d '{"str":<n>,"agi":<n>,"int":<n>,"vit":<n>}'
-```
-
 ### /barren fight <target_name>
-挑战指定玩家或 NPC。
+挑战指定玩家或 NPC。每日限 10 次对战（不消耗体力）。
 1. 先通过 by-name 获取双方 ID
 2. 调用 challenge API
 ```bash
 curl -s http://127.0.0.1:19820/api/battle/challenge -X POST -H 'Content-Type: application/json' -d '{"attacker_id":<id>,"defender_id":<id>}'
 ```
+注意：属性点升级时自动随机分配，不需要手动加点。
 
 ### /barren ladder
-天梯随机匹配！自动匹配 ELO 水平相近的对手进行战斗。
+天梯随机匹配！自动匹配 ELO 水平相近的对手。每日限 10 次。
+可能遇到 NPC，也可能遇到其他玩家，可能比你强也可能比你弱。
 ```bash
 curl -s http://127.0.0.1:19820/api/battle/ladder/<player_id> -X POST
-```
-
-### /barren revenge <battle_id>
-对某场战斗发起复仇（免体力）。
-```bash
-curl -s "http://127.0.0.1:19820/api/battle/revenge/<battle_id>?player_id=<id>" -X POST
 ```
 
 ### /barren history
@@ -166,18 +156,25 @@ curl -s http://127.0.0.1:19820/api/ranking/level
 
 ## 体力提示（必须遵守）
 
-**每次操作完成后，都必须在输出末尾显示当前体力状态。** 格式：
+**每次操作完成后，都必须在输出末尾显示资源状态。** 格式：
 ```
-⚡ 体力: 16/20 | 战斗(-1) 探索(-4)
+⚡ 体力: 16/20（探索-4）| ⚔️ 对战: 8/10 剩余
 ```
 
-体力消耗：
-- 战斗（fight）: 1 点
-- 探索（explore）: 4 点（每天最多 5 次）
-- 复仇（revenge）: 0 点（免费）
-- 其他操作: 0 点
+资源系统：
+- **体力**：每日 20 点，仅探索消耗（每次 -4，最多 5 次）
+- **对战次数**：每日 10 次，战斗/天梯消耗，不消耗体力
+- 两个资源独立，UTC+8 零点分别重置
 
-执行消耗体力的操作前，先说明消耗量。执行后，从 API 返回的 player 数据中读取最新 stamina 并展示。
+战斗特殊机制（战斗结果中展示）：
+- 输了：背包里的装备可能被对手抢走（30% 概率）
+- 赢了：可能从对手背包抢到装备（30% 概率，NPC 除外）
+- API 返回 `loot` 字段，非 null 时展示抢夺结果
+- API 返回 `battles_remaining` 字段，展示剩余对战次数
+
+属性系统：
+- 升级时属性点自动随机分配，不需要玩家手动操作
+- 升级后展示属性变化
 
 ## 输出渲染规范
 

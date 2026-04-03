@@ -83,7 +83,9 @@ def allocate_points(db: Session, player_id: int, alloc: AllocatePoints) -> Playe
 
 
 def add_exp(db: Session, player: Player, exp: int) -> tuple[Player, int]:
-    """增加经验值，自动升级。返回 (player, 升了几级)"""
+    """增加经验值，自动升级，属性点自动随机分配。返回 (player, 升了几级)"""
+    import random
+
     levels_gained = 0
     player.exp += exp
 
@@ -93,8 +95,14 @@ def add_exp(db: Session, player: Player, exp: int) -> tuple[Player, int]:
             break
         player.exp -= needed
         player.level += 1
-        player.unallocated_points += points_per_level(player.level)
         levels_gained += 1
+
+        # 属性点自动随机分配
+        pts = points_per_level(player.level)
+        for _ in range(pts):
+            stat = random.choice(["str_", "agi", "int_", "vit"])
+            setattr(player, stat, getattr(player, stat) + 1)
+
         _unlock_skills(db, player)
 
     db.commit()
@@ -131,9 +139,37 @@ def refresh_stamina(db: Session, player: Player) -> Player:
 
 def consume_stamina(db: Session, player: Player, cost: int) -> Player:
     refresh_stamina(db, player)
+    if cost == 0:
+        return player
     if player.stamina < cost:
         raise ValueError(f"体力不足，当前 {player.stamina}，需要 {cost}")
     player.stamina -= cost
+    db.commit()
+    db.refresh(player)
+    return player
+
+
+def refresh_battle_count(db: Session, player: Player) -> Player:
+    """每日对战次数重置（UTC+8 零点）"""
+    now = datetime.datetime.utcnow()
+    utc8_now = now + datetime.timedelta(hours=8)
+    utc8_last = player.battles_refreshed_at + datetime.timedelta(hours=8)
+
+    if utc8_now.date() > utc8_last.date():
+        player.daily_battles = 0
+        player.battles_refreshed_at = now
+        db.commit()
+        db.refresh(player)
+
+    return player
+
+
+def consume_battle_count(db: Session, player: Player) -> Player:
+    from server.config import DAILY_BATTLE_LIMIT
+    refresh_battle_count(db, player)
+    if player.daily_battles >= DAILY_BATTLE_LIMIT:
+        raise ValueError(f"今日对战次数已用完（{DAILY_BATTLE_LIMIT}/{DAILY_BATTLE_LIMIT}），明天再战")
+    player.daily_battles += 1
     db.commit()
     db.refresh(player)
     return player

@@ -38,6 +38,12 @@ class Player(Base):
         DateTime, default=datetime.datetime.utcnow
     )
 
+    # 每日对战次数
+    daily_battles: Mapped[int] = mapped_column(Integer, default=0)
+    battles_refreshed_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, default=datetime.datetime.utcnow
+    )
+
     # 元信息
     is_npc: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime.datetime] = mapped_column(

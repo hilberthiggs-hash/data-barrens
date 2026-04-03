@@ -6,8 +6,8 @@ from server.db import get_db
 from server.models import Player, BattleLog, Equipment, PlayerSkill
 from server.schemas import ChallengeRequest, BattleLogOut, BattleRound, PlayerBrief, MessageOut
 from server.services.battle_engine import build_fighter, run_battle, calc_elo_change, calc_exp_reward
-from server.services.player_service import consume_stamina, add_exp, get_player
-from server.config import BATTLE_STAMINA_COST
+from server.services.player_service import consume_stamina, consume_battle_count, add_exp, get_player
+from server.config import BATTLE_STAMINA_COST, LOOT_CHANCE
 
 router = APIRouter(prefix="/api/battle", tags=["battle"])
 
@@ -27,7 +27,35 @@ def _get_equipped_skill_ids(player: Player) -> list[str]:
     return [ps.skill_id for ps in player.skills if ps.equipped]
 
 
-def _execute_battle(db: Session, attacker: Player, defender: Player, is_revenge: bool = False):
+def _loot_equipment(db: Session, winner: Player, loser: Player) -> str | None:
+    """胜者有概率从败者背包抢一件装备，败者失去该装备。返回描述文本。"""
+    import random
+
+    if loser.is_npc:
+        return None  # NPC 不掉装备
+
+    # 败者未装备的背包装备
+    lootable = [e for e in loser.equipments if not e.equipped]
+    if not lootable:
+        return None
+
+    if random.random() >= LOOT_CHANCE:
+        return None
+
+    # 随机抢一件，稀有度越高越难抢（权重反比）
+    weights = [max(1, 5 - e.rarity) for e in lootable]
+    stolen = random.choices(lootable, weights=weights, k=1)[0]
+
+    # 转移所有权
+    stolen.player_id = winner.id
+    stolen.equipped = False
+    db.commit()
+
+    from server.schemas import RARITY_NAMES
+    return f"[{RARITY_NAMES[stolen.rarity]}]{stolen.name}"
+
+
+def _execute_battle(db: Session, attacker: Player, defender: Player):
     # 构建战斗双方
     a_bonuses = _get_equipped_bonuses(attacker)
     d_bonuses = _get_equipped_bonuses(defender)
@@ -44,6 +72,7 @@ def _execute_battle(db: Session, attacker: Player, defender: Player, is_revenge:
     winner_name, rounds = run_battle(fighter_a, fighter_b)
 
     # ELO 和经验
+    loot_desc = None
     if winner_name == attacker.name:
         elo_w, elo_l = calc_elo_change(attacker.elo, defender.elo)
         exp_w, exp_l = calc_exp_reward(attacker.level, defender.level)
@@ -53,6 +82,7 @@ def _execute_battle(db: Session, attacker: Player, defender: Player, is_revenge:
         add_exp(db, defender, exp_l)
         a_elo_change, d_elo_change = elo_w, elo_l
         a_exp, d_exp = exp_w, exp_l
+        loot_desc = _loot_equipment(db, attacker, defender)
     elif winner_name == defender.name:
         elo_w, elo_l = calc_elo_change(defender.elo, attacker.elo)
         exp_w, exp_l = calc_exp_reward(defender.level, attacker.level)
@@ -62,8 +92,8 @@ def _execute_battle(db: Session, attacker: Player, defender: Player, is_revenge:
         add_exp(db, attacker, exp_l)
         a_elo_change, d_elo_change = elo_l, elo_w
         a_exp, d_exp = exp_l, exp_w
+        loot_desc = _loot_equipment(db, defender, attacker)
     else:
-        # 平局
         a_elo_change, d_elo_change = 0, 0
         a_exp, d_exp = 15, 15
         add_exp(db, attacker, a_exp)
@@ -90,15 +120,15 @@ def _execute_battle(db: Session, attacker: Player, defender: Player, is_revenge:
         defender_elo_change=d_elo_change,
         attacker_exp_gained=a_exp,
         defender_exp_gained=d_exp,
-        is_revenge=is_revenge,
+        is_revenge=False,
     )
     db.add(log)
     db.commit()
     db.refresh(log)
-    return log, rounds
+    return log, rounds, loot_desc
 
 
-def _log_to_out(db: Session, log: BattleLog, rounds: list | None = None) -> BattleLogOut:
+def _log_to_out(db: Session, log: BattleLog, rounds: list | None = None, loot_desc: str | None = None) -> dict:
     attacker = get_player(db, log.attacker_id)
     defender = get_player(db, log.defender_id)
     winner_name = None
@@ -116,7 +146,7 @@ def _log_to_out(db: Session, log: BattleLog, rounds: list | None = None) -> Batt
              "defender_hp": r.defender_hp} for r in rounds
         ]
 
-    return BattleLogOut(
+    result = BattleLogOut(
         id=log.id,
         attacker=PlayerBrief(id=attacker.id, name=attacker.name, buddy_species=attacker.buddy_species,
                              level=attacker.level, elo=attacker.elo),
@@ -128,12 +158,18 @@ def _log_to_out(db: Session, log: BattleLog, rounds: list | None = None) -> Batt
         defender_elo_change=log.defender_elo_change,
         attacker_exp_gained=log.attacker_exp_gained,
         defender_exp_gained=log.defender_exp_gained,
-        is_revenge=log.is_revenge,
+        is_revenge=False,
         created_at=log.created_at,
     )
+    out = result.model_dump(mode="json")
+    out["loot"] = loot_desc
+    # 附带攻击方剩余对战次数
+    from server.config import DAILY_BATTLE_LIMIT
+    out["battles_remaining"] = DAILY_BATTLE_LIMIT - attacker.daily_battles
+    return out
 
 
-@router.post("/challenge", response_model=BattleLogOut)
+@router.post("/challenge")
 def api_challenge(data: ChallengeRequest, db: Session = Depends(get_db)):
     if data.attacker_id == data.defender_id:
         raise HTTPException(status_code=400, detail="不能挑战自己")
@@ -145,12 +181,15 @@ def api_challenge(data: ChallengeRequest, db: Session = Depends(get_db)):
     if not defender:
         raise HTTPException(status_code=404, detail="防守方不存在")
 
-    consume_stamina(db, attacker, BATTLE_STAMINA_COST)
-    log, rounds = _execute_battle(db, attacker, defender)
-    return _log_to_out(db, log, rounds)
+    try:
+        consume_battle_count(db, attacker)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    log, rounds, loot_desc = _execute_battle(db, attacker, defender)
+    return _log_to_out(db, log, rounds, loot_desc)
 
 
-@router.post("/ladder/{player_id}", response_model=BattleLogOut)
+@router.post("/ladder/{player_id}")
 def api_ladder(player_id: int, db: Session = Depends(get_db)):
     """天梯匹配：自动匹配 ELO 相近的对手"""
     import random
@@ -159,7 +198,10 @@ def api_ladder(player_id: int, db: Session = Depends(get_db)):
     if not attacker:
         raise HTTPException(status_code=404, detail="玩家不存在")
 
-    consume_stamina(db, attacker, BATTLE_STAMINA_COST)
+    try:
+        consume_battle_count(db, attacker)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     # 找 ELO 差距在 300 以内的所有对手（包含 NPC）
     elo_range = 300
@@ -169,42 +211,21 @@ def api_ladder(player_id: int, db: Session = Depends(get_db)):
         Player.elo <= attacker.elo + elo_range,
     ).all()
 
-    # 如果范围内没人，放宽到所有人
     if not candidates:
         candidates = db.query(Player).filter(Player.id != player_id).all()
 
     if not candidates:
         raise HTTPException(status_code=400, detail="荒原空无一人……没有可匹配的对手")
 
-    # ELO 越接近权重越高
-    weights = [max(1, elo_range - abs(c.elo - attacker.elo)) for c in candidates]
+    # ELO 越接近权重越高，加一些随机性
+    weights = [max(1, elo_range - abs(c.elo - attacker.elo)) + random.randint(0, 100) for c in candidates]
     defender = random.choices(candidates, weights=weights, k=1)[0]
 
-    log, rounds = _execute_battle(db, attacker, defender)
-    return _log_to_out(db, log, rounds)
+    log, rounds, loot_desc = _execute_battle(db, attacker, defender)
+    return _log_to_out(db, log, rounds, loot_desc)
 
 
-@router.post("/revenge/{battle_id}", response_model=BattleLogOut)
-def api_revenge(battle_id: int, player_id: int, db: Session = Depends(get_db)):
-    original = db.query(BattleLog).filter(BattleLog.id == battle_id).first()
-    if not original:
-        raise HTTPException(status_code=404, detail="战斗记录不存在")
-    if original.defender_id != player_id:
-        raise HTTPException(status_code=400, detail="只有被挑战方才能复仇")
-    if original.winner_id == player_id:
-        raise HTTPException(status_code=400, detail="你赢了这场战斗，不需要复仇")
-
-    attacker = get_player(db, player_id)
-    defender = get_player(db, original.attacker_id)
-    if not attacker or not defender:
-        raise HTTPException(status_code=404, detail="玩家不存在")
-
-    # 复仇不消耗体力
-    log, rounds = _execute_battle(db, attacker, defender, is_revenge=True)
-    return _log_to_out(db, log, rounds)
-
-
-@router.get("/log/{log_id}", response_model=BattleLogOut)
+@router.get("/log/{log_id}")
 def api_get_log(log_id: int, db: Session = Depends(get_db)):
     log = db.query(BattleLog).filter(BattleLog.id == log_id).first()
     if not log:
