@@ -3,6 +3,7 @@
 
 def test_register_player(client):
     resp = client.post("/api/player/register", json={
+        "email": "test@example.com",
         "name": "testplayer",
         "buddy_species": "duck",
         "buddy_eye": "✦",
@@ -21,14 +22,21 @@ def test_register_player(client):
 
 
 def test_register_duplicate_name(client):
-    client.post("/api/player/register", json={"name": "dup"})
-    resp = client.post("/api/player/register", json={"name": "dup"})
+    client.post("/api/player/register", json={"email": "a@test.com", "name": "dup"})
+    resp = client.post("/api/player/register", json={"email": "b@test.com", "name": "dup"})
     assert resp.status_code == 400
     assert "已被占用" in resp.json()["detail"]
 
 
+def test_register_duplicate_email(client):
+    client.post("/api/player/register", json={"email": "same@test.com", "name": "player1"})
+    resp = client.post("/api/player/register", json={"email": "same@test.com", "name": "player2"})
+    assert resp.status_code == 400
+    assert "一人一号" in resp.json()["detail"]
+
+
 def test_get_player(client):
-    resp = client.post("/api/player/register", json={"name": "getme"})
+    resp = client.post("/api/player/register", json={"email": "get@test.com", "name": "getme"})
     pid = resp.json()["id"]
     resp = client.get(f"/api/player/{pid}")
     assert resp.status_code == 200
@@ -36,10 +44,17 @@ def test_get_player(client):
 
 
 def test_get_player_by_name(client):
-    client.post("/api/player/register", json={"name": "findme"})
+    client.post("/api/player/register", json={"email": "find@test.com", "name": "findme"})
     resp = client.get("/api/player/by-name/findme")
     assert resp.status_code == 200
     assert resp.json()["name"] == "findme"
+
+
+def test_get_player_by_email(client):
+    client.post("/api/player/register", json={"email": "lookup@test.com", "name": "lookupme"})
+    resp = client.get("/api/player/by-email/lookup@test.com")
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "lookupme"
 
 
 def test_get_player_not_found(client):
@@ -48,10 +63,8 @@ def test_get_player_not_found(client):
 
 
 def test_allocate_points(client):
-    # 先创建一个有属性点的玩家（通过直接修改数据库）
-    resp = client.post("/api/player/register", json={"name": "alloctest"})
+    resp = client.post("/api/player/register", json={"email": "alloc@test.com", "name": "alloctest"})
     pid = resp.json()["id"]
-
     # 新玩家没有未分配属性点，应该失败
     resp = client.post(f"/api/player/{pid}/allocate", json={"str": 1})
     assert resp.status_code == 400

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from server.db import get_db
 from server.schemas import PlayerRegister, AllocatePoints, PlayerOut, MessageOut
 from server.services.player_service import (
-    register_player, get_player, get_player_by_name,
+    register_player, get_player, get_player_by_name, get_player_by_email,
     allocate_points, refresh_stamina, to_player_out,
 )
 
@@ -34,6 +34,15 @@ def api_get_player_by_name(name: str, db: Session = Depends(get_db)):
     player = get_player_by_name(db, name)
     if not player:
         raise HTTPException(status_code=404, detail="玩家不存在")
+    refresh_stamina(db, player)
+    return to_player_out(player)
+
+
+@router.get("/by-email/{email:path}", response_model=PlayerOut)
+def api_get_player_by_email(email: str, db: Session = Depends(get_db)):
+    player = get_player_by_email(db, email)
+    if not player:
+        raise HTTPException(status_code=404, detail="该邮箱未注册角色")
     refresh_stamina(db, player)
     return to_player_out(player)
 

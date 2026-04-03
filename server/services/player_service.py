@@ -10,11 +10,17 @@ from server.config import (
 
 
 def register_player(db: Session, data: PlayerRegister) -> Player:
-    existing = db.query(Player).filter(Player.name == data.name).first()
-    if existing:
+    # 邮箱唯一：一个人只能注册一个角色
+    existing_email = db.query(Player).filter(Player.email == data.email).first()
+    if existing_email:
+        raise ValueError(f"你已经有角色了：'{existing_email.name}'，一人一号，不可多开")
+
+    existing_name = db.query(Player).filter(Player.name == data.name).first()
+    if existing_name:
         raise ValueError(f"名字 '{data.name}' 已被占用")
 
     player = Player(
+        email=data.email,
         name=data.name,
         buddy_species=data.buddy_species,
         buddy_eye=data.buddy_eye,
@@ -30,6 +36,10 @@ def register_player(db: Session, data: PlayerRegister) -> Player:
 
 def get_player(db: Session, player_id: int) -> Player | None:
     return db.query(Player).filter(Player.id == player_id).first()
+
+
+def get_player_by_email(db: Session, email: str) -> Player | None:
+    return db.query(Player).filter(Player.email == email).first()
 
 
 def get_player_by_name(db: Session, name: str) -> Player | None:

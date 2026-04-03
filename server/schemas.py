@@ -5,6 +5,7 @@ from datetime import datetime
 # ── Player ──
 
 class PlayerRegister(BaseModel):
+    email: str = Field(min_length=1, max_length=128)  # 唯一身份标识
     name: str = Field(min_length=1, max_length=32)
     buddy_species: str = "blob"
     buddy_eye: str = "·"

@@ -4,7 +4,7 @@ import json
 
 def _register(client, name="hero", species="duck"):
     resp = client.post("/api/player/register", json={
-        "name": name, "buddy_species": species,
+        "email": f"{name}@test.com", "name": name, "buddy_species": species,
     })
     assert resp.status_code == 200
     return resp.json()
