@@ -7,6 +7,7 @@ from server.models import Player, BattleLog, Equipment, PlayerSkill
 from server.schemas import ChallengeRequest, BattleLogOut, BattleRound, PlayerBrief, MessageOut
 from server.services.battle_engine import build_fighter, run_battle, calc_elo_change, calc_exp_reward
 from server.services.player_service import consume_stamina, consume_battle_count, add_exp, get_player
+from server.auth import get_current_player
 from server.config import BATTLE_STAMINA_COST, LOOT_CHANCE
 
 router = APIRouter(prefix="/api/battle", tags=["battle"])
@@ -172,14 +173,14 @@ def _log_to_out(db: Session, log: BattleLog, rounds: list | None = None, loot_de
 
 
 @router.post("/challenge")
-def api_challenge(data: ChallengeRequest, db: Session = Depends(get_db)):
+def api_challenge(data: ChallengeRequest, db: Session = Depends(get_db), me: Player = Depends(get_current_player)):
+    if data.attacker_id != me.id:
+        raise HTTPException(status_code=403, detail="只能用自己的角色发起挑战")
     if data.attacker_id == data.defender_id:
         raise HTTPException(status_code=400, detail="不能挑战自己")
 
-    attacker = get_player(db, data.attacker_id)
+    attacker = me
     defender = get_player(db, data.defender_id)
-    if not attacker:
-        raise HTTPException(status_code=404, detail="攻击方不存在")
     if not defender:
         raise HTTPException(status_code=404, detail="防守方不存在")
 
@@ -194,25 +195,23 @@ def api_challenge(data: ChallengeRequest, db: Session = Depends(get_db)):
     return _log_to_out(db, log, rounds, loot_desc)
 
 
-@router.post("/ladder/{player_id}")
-def api_ladder(player_id: int, db: Session = Depends(get_db)):
+@router.post("/ladder")
+def api_ladder(db: Session = Depends(get_db), me: Player = Depends(get_current_player)):
     """天梯匹配：自动匹配 ELO 相近的对手"""
     import random
 
-    attacker = get_player(db, player_id)
-    if not attacker:
-        raise HTTPException(status_code=404, detail="玩家不存在")
+    attacker = me
 
     try:
         consume_battle_count(db, attacker)
-        consume_stamina(db, attacker, 1)  # 天梯消耗 1 体力
+        consume_stamina(db, attacker, 1)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
     # 找 ELO 差距在 300 以内的所有对手（包含 NPC）
     elo_range = 300
     candidates = db.query(Player).filter(
-        Player.id != player_id,
+        Player.id != attacker.id,
         Player.elo >= attacker.elo - elo_range,
         Player.elo <= attacker.elo + elo_range,
     ).all()

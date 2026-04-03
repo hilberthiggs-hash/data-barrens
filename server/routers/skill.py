@@ -7,14 +7,14 @@ from server.models import Player, PlayerSkill
 from server.config import MAX_EQUIPPED_SKILLS
 from server.game_data.skills import SKILL_MAP
 from server.schemas import MessageOut
+from server.auth import get_current_player
 
 router = APIRouter(prefix="/api/skill", tags=["skill"])
 
 
 class EquipSkillRequest(BaseModel):
-    player_id: int
     skill_id: str
-    equip: bool = True  # True=装备, False=卸下
+    equip: bool = True
 
 
 class SkillOut(BaseModel):
@@ -26,6 +26,7 @@ class SkillOut(BaseModel):
     equipped: bool
 
 
+# 读接口：公开
 @router.get("/{player_id}/list", response_model=list[SkillOut])
 def api_list_skills(player_id: int, db: Session = Depends(get_db)):
     player = db.query(Player).filter(Player.id == player_id).first()
@@ -47,14 +48,11 @@ def api_list_skills(player_id: int, db: Session = Depends(get_db)):
     return result
 
 
+# 写接口：需认证
 @router.post("/equip", response_model=MessageOut)
-def api_equip_skill(data: EquipSkillRequest, db: Session = Depends(get_db)):
-    player = db.query(Player).filter(Player.id == data.player_id).first()
-    if not player:
-        raise HTTPException(status_code=404, detail="玩家不存在")
-
+def api_equip_skill(data: EquipSkillRequest, db: Session = Depends(get_db), me: Player = Depends(get_current_player)):
     ps = db.query(PlayerSkill).filter(
-        PlayerSkill.player_id == data.player_id,
+        PlayerSkill.player_id == me.id,
         PlayerSkill.skill_id == data.skill_id,
     ).first()
     if not ps:
@@ -67,7 +65,7 @@ def api_equip_skill(data: EquipSkillRequest, db: Session = Depends(get_db)):
         if ps.equipped:
             return MessageOut(message=f"「{skill_name}」已经装备了")
         equipped_count = db.query(PlayerSkill).filter(
-            PlayerSkill.player_id == data.player_id,
+            PlayerSkill.player_id == me.id,
             PlayerSkill.equipped == True,
         ).count()
         if equipped_count >= MAX_EQUIPPED_SKILLS:

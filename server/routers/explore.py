@@ -6,8 +6,9 @@ from sqlalchemy.orm import Session
 from server.db import get_db
 from server.models import Player
 from server.schemas import EquipmentOut, RARITY_NAMES
-from server.services.player_service import get_player, consume_stamina
+from server.services.player_service import consume_stamina
 from server.services.explore_service import explore
+from server.auth import get_current_player
 from server.game_data.lore import EXPLORE_TEXTS
 from server.config import EXPLORE_STAMINA_COST
 
@@ -17,16 +18,13 @@ router = APIRouter(prefix="/api/explore", tags=["explore"])
 class ExploreResult(BaseModel):
     narrative: str
     equipment: EquipmentOut
+    stamina_remaining: int
 
 
-@router.post("/{player_id}", response_model=ExploreResult)
-def api_explore(player_id: int, db: Session = Depends(get_db)):
-    player = get_player(db, player_id)
-    if not player:
-        raise HTTPException(status_code=404, detail="玩家不存在")
-
-    consume_stamina(db, player, EXPLORE_STAMINA_COST)
-    equip = explore(db, player)
+@router.post("", response_model=ExploreResult)
+def api_explore(db: Session = Depends(get_db), me: Player = Depends(get_current_player)):
+    consume_stamina(db, me, EXPLORE_STAMINA_COST)
+    equip = explore(db, me)
 
     narrative = random.choice(EXPLORE_TEXTS)
     rarity_name = RARITY_NAMES[equip.rarity]
@@ -47,4 +45,5 @@ def api_explore(player_id: int, db: Session = Depends(get_db)):
             vit_bonus=equip.vit_bonus,
             equipped=equip.equipped,
         ),
+        stamina_remaining=me.stamina,
     )

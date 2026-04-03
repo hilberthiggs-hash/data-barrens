@@ -11,13 +11,15 @@ from server.services.player_service import (
 router = APIRouter(prefix="/api/player", tags=["player"])
 
 
-@router.post("/register", response_model=PlayerOut)
+@router.post("/register")
 def api_register(data: PlayerRegister, db: Session = Depends(get_db)):
     try:
         player = register_player(db, data)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return to_player_out(player)
+    out = to_player_out(player).model_dump(mode="json", by_alias=True)
+    out["api_token"] = player.api_token  # 仅注册时返回 token
+    return out
 
 
 @router.get("/{player_id}", response_model=PlayerOut)

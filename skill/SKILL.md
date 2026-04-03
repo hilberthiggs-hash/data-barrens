@@ -23,17 +23,21 @@ BASE_URL=http://127.0.0.1:19820
 
 **通过环境变量 `$ANTHROPIC_AUTH_USER_EMAIL` 自动识别身份，一人一号，全自动注册。**
 
-每次 /barren 被触发时，用下面这个一体化脚本检查身份并自动注册（直接整段执行）：
+每次 /barren 被触发时，用下面这个一体化脚本检查身份、自动注册、管理 token：
 ```bash
 python3 -c "
-import urllib.request, json, os
+import urllib.request, json, os, pathlib
 base = 'http://127.0.0.1:19820'
 email = os.environ.get('ANTHROPIC_AUTH_USER_EMAIL', '')
+token_file = pathlib.Path.home() / '.data-barrens-token'
+
 # 查询是否已注册
 try:
     resp = urllib.request.urlopen(f'{base}/api/player/by-email/{email}')
     player = json.loads(resp.read())
-    print(json.dumps(player, ensure_ascii=False))
+    # 读取本地 token
+    token = token_file.read_text().strip() if token_file.exists() else ''
+    print(json.dumps({'player': player, 'token': token}, ensure_ascii=False))
 except urllib.error.HTTPError as e:
     if e.code == 404:
         # 未注册，自动注册
@@ -45,16 +49,30 @@ except urllib.error.HTTPError as e:
         data = json.dumps({'email': email, 'name': name, 'user_id': user_id}).encode()
         req = urllib.request.Request(f'{base}/api/player/register', data=data, headers={'Content-Type': 'application/json'})
         resp = urllib.request.urlopen(req)
-        player = json.loads(resp.read())
+        result = json.loads(resp.read())
+        # 保存 token 到本地
+        token = result.get('api_token', '')
+        token_file.write_text(token)
         print('NEW_PLAYER')
-        print(json.dumps(player, ensure_ascii=False))
+        print(json.dumps({'player': result, 'token': token}, ensure_ascii=False))
     else:
         print(f'ERROR: {e.code}')
 "
 ```
-- 输出第一行如果是 `NEW_PLAYER`：说明是新注册的，展示欢迎信息 + 角色卡片
-- 否则直接是 JSON：已有角色，解析后继续执行命令
-- 从返回的 JSON 中获取 `id`（player_id）和 `name`，后续所有操作使用这个 id
+- 输出第一行如果是 `NEW_PLAYER`：新注册，token 已自动保存到 `~/.data-barrens-token`，展示欢迎 + 角色卡片
+- 否则是 JSON：已有角色，包含 `player` 和 `token`
+- **所有写操作（战斗/探索/装备/技能）必须在 curl 中加上 `-H 'Authorization: Bearer <token>'`**
+- token 从上面脚本输出中获取
+
+## 认证规则
+
+**读接口（公开，无需 token）：** 查看角色、排行榜、战斗日志、装备列表、技能列表
+**写接口（需要 token）：** 战斗、天梯、探索、装备穿戴/卸下/合成、技能装备/卸下
+
+所有写操作的 curl 都要加：
+```
+-H 'Authorization: Bearer <token>'
+```
 
 ## 命令映射
 
@@ -79,7 +97,7 @@ curl -s http://127.0.0.1:19820/api/player/by-name/<name>
 1. 先通过 by-name 获取双方 ID
 2. 调用 challenge API
 ```bash
-curl -s http://127.0.0.1:19820/api/battle/challenge -X POST -H 'Content-Type: application/json' -d '{"attacker_id":<id>,"defender_id":<id>}'
+curl -s http://127.0.0.1:19820/api/battle/challenge -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"attacker_id":<id>,"defender_id":<id>}'
 ```
 注意：属性点升级时自动随机分配，不需要手动加点。
 
@@ -88,7 +106,7 @@ curl -s http://127.0.0.1:19820/api/battle/challenge -X POST -H 'Content-Type: ap
 可能遇到 NPC 也可能遇到玩家，可能偏强也可能偏弱。
 **天梯不掉装备，安全练级。**
 ```bash
-curl -s http://127.0.0.1:19820/api/battle/ladder/<player_id> -X POST
+curl -s http://127.0.0.1:19820/api/battle/ladder -X POST -H 'Authorization: Bearer <token>'
 ```
 
 ### /barren history
@@ -100,7 +118,7 @@ curl -s http://127.0.0.1:19820/api/battle/history/<player_id>
 ### /barren explore
 探索荒原，获取装备。
 ```bash
-curl -s http://127.0.0.1:19820/api/explore/<player_id> -X POST
+curl -s http://127.0.0.1:19820/api/explore -X POST -H 'Authorization: Bearer <token>'
 ```
 
 ### /barren bag
@@ -112,19 +130,19 @@ curl -s http://127.0.0.1:19820/api/equipment/<player_id>/list
 ### /barren equip <equipment_id>
 穿戴装备。
 ```bash
-curl -s "http://127.0.0.1:19820/api/equipment/equip?player_id=<id>&equipment_id=<eid>" -X POST
+curl -s "http://127.0.0.1:19820/api/equipment/equip?equipment_id=<eid>" -X POST -H 'Authorization: Bearer <token>'
 ```
 
 ### /barren unequip <equipment_id>
 卸下装备。
 ```bash
-curl -s "http://127.0.0.1:19820/api/equipment/unequip?player_id=<id>&equipment_id=<eid>" -X POST
+curl -s "http://127.0.0.1:19820/api/equipment/unequip?equipment_id=<eid>" -X POST -H 'Authorization: Bearer <token>'
 ```
 
 ### /barren merge <template_id> <rarity>
 合成装备（3 合 1 升级）。
 ```bash
-curl -s http://127.0.0.1:19820/api/equipment/merge -X POST -H 'Content-Type: application/json' -d '{"player_id":<id>,"template_id":"<tid>","rarity":<r>}'
+curl -s http://127.0.0.1:19820/api/equipment/merge -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"template_id":"<tid>","rarity":<r>}'
 ```
 
 ### /barren skills
@@ -136,13 +154,13 @@ curl -s http://127.0.0.1:19820/api/skill/<player_id>/list
 ### /barren equip-skill <skill_id>
 装备技能（最多 3 个）。
 ```bash
-curl -s http://127.0.0.1:19820/api/skill/equip -X POST -H 'Content-Type: application/json' -d '{"player_id":<id>,"skill_id":"<sid>","equip":true}'
+curl -s http://127.0.0.1:19820/api/skill/equip -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"skill_id":"<sid>","equip":true}'
 ```
 
 ### /barren unequip-skill <skill_id>
 卸下技能。
 ```bash
-curl -s http://127.0.0.1:19820/api/skill/equip -X POST -H 'Content-Type: application/json' -d '{"player_id":<id>,"skill_id":"<sid>","equip":false}'
+curl -s http://127.0.0.1:19820/api/skill/equip -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"skill_id":"<sid>","equip":false}'
 ```
 
 ### /barren rank [elo|level]

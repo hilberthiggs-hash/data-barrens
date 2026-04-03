@@ -33,8 +33,10 @@ def register_player(db: Session, data: PlayerRegister) -> Player:
         hat = data.buddy_hat
         shiny = data.buddy_shiny
 
+    import secrets
     player = Player(
         email=data.email,
+        api_token=secrets.token_hex(32),
         name=data.name,
         buddy_species=species,
         buddy_eye=eye,

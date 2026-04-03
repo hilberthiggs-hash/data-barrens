@@ -10,6 +10,7 @@ class Player(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     email: Mapped[str | None] = mapped_column(String(128), unique=True, nullable=True)  # 唯一身份标识
+    api_token: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)  # API 认证 token
     name: Mapped[str] = mapped_column(String(32), unique=True, nullable=False)
 
     # Buddy 外观（仅形象，不继承属性）
