@@ -225,7 +225,11 @@ def run_battle(fighter_a: FighterStats, fighter_b: FighterStats, seed: int | Non
             action_first = f"{desc} → {second.name} -{damage} HP"
 
         if second.hp <= 0:
-            rounds.append(RoundResult(round_num, action_first, "", first.hp, max(0, second.hp)))
+            # 统一按 fighter_a/fighter_b 顺序记录
+            if first is fighter_a:
+                rounds.append(RoundResult(round_num, action_first, "", fighter_a.hp, max(0, fighter_b.hp)))
+            else:
+                rounds.append(RoundResult(round_num, "", action_first, fighter_a.hp, max(0, fighter_b.hp)))
             return first.name, rounds
 
         # ── second 攻击 first ──
@@ -252,7 +256,10 @@ def run_battle(fighter_a: FighterStats, fighter_b: FighterStats, seed: int | Non
             action_second = f"{desc} → {first.name} -{damage} HP"
 
         if first.hp <= 0:
-            rounds.append(RoundResult(round_num, action_first, action_second, max(0, first.hp), second.hp))
+            if first is fighter_a:
+                rounds.append(RoundResult(round_num, action_first, action_second, max(0, fighter_a.hp), fighter_b.hp))
+            else:
+                rounds.append(RoundResult(round_num, action_second, action_first, max(0, fighter_a.hp), fighter_b.hp))
             return second.name, rounds
 
         # tick buffs
