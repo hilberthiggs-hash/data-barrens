@@ -1,0 +1,58 @@
+"""预置 NPC，冷启动时提供对手"""
+
+NPC_DEFS = [
+    {
+        "name": "训练假人",
+        "buddy_species": "robot",
+        "level": 1,
+        "str": 5, "agi": 5, "int": 5, "vit": 5,
+        "elo": 800,
+        "skills": [],
+        "description": "荒原边缘的训练傀儡，不会还手。",
+    },
+    {
+        "name": "流浪字节",
+        "buddy_species": "ghost",
+        "level": 5,
+        "str": 12, "agi": 8, "int": 6, "vit": 10,
+        "elo": 900,
+        "skills": ["heavy_strike"],
+        "description": "游荡在荒原中的孤独字节，擅长蛮力攻击。",
+    },
+    {
+        "name": "影子进程",
+        "buddy_species": "cat",
+        "level": 10,
+        "str": 8, "agi": 20, "int": 10, "vit": 8,
+        "elo": 1000,
+        "skills": ["dodge", "combo"],
+        "description": "来无影去无踪的后台进程，速度是它的武器。",
+    },
+    {
+        "name": "守护线程",
+        "buddy_species": "turtle",
+        "level": 15,
+        "str": 10, "agi": 6, "int": 12, "vit": 25,
+        "elo": 1100,
+        "skills": ["block", "thorns", "regenerate"],
+        "description": "永不退出的守护进程，以坚韧著称。",
+    },
+    {
+        "name": "编译之龙",
+        "buddy_species": "dragon",
+        "level": 20,
+        "str": 18, "agi": 15, "int": 22, "vit": 15,
+        "elo": 1200,
+        "skills": ["fireball", "freeze", "annihilate"],
+        "description": "荒原深处的传说存在，掌握毁灭的编译之力。",
+    },
+    {
+        "name": "源码圣殿看门人",
+        "buddy_species": "octopus",
+        "level": 25,
+        "str": 22, "agi": 20, "int": 25, "vit": 22,
+        "elo": 1400,
+        "skills": ["berserk", "assassinate", "annihilate"],
+        "description": "圣殿最终守卫，集齐所有流派精髓的终极对手。",
+    },
+]
