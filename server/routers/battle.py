@@ -150,6 +150,40 @@ def api_challenge(data: ChallengeRequest, db: Session = Depends(get_db)):
     return _log_to_out(db, log, rounds)
 
 
+@router.post("/ladder/{player_id}", response_model=BattleLogOut)
+def api_ladder(player_id: int, db: Session = Depends(get_db)):
+    """天梯匹配：自动匹配 ELO 相近的对手"""
+    import random
+
+    attacker = get_player(db, player_id)
+    if not attacker:
+        raise HTTPException(status_code=404, detail="玩家不存在")
+
+    consume_stamina(db, attacker, BATTLE_STAMINA_COST)
+
+    # 找 ELO 差距在 300 以内的所有对手（包含 NPC）
+    elo_range = 300
+    candidates = db.query(Player).filter(
+        Player.id != player_id,
+        Player.elo >= attacker.elo - elo_range,
+        Player.elo <= attacker.elo + elo_range,
+    ).all()
+
+    # 如果范围内没人，放宽到所有人
+    if not candidates:
+        candidates = db.query(Player).filter(Player.id != player_id).all()
+
+    if not candidates:
+        raise HTTPException(status_code=400, detail="荒原空无一人……没有可匹配的对手")
+
+    # ELO 越接近权重越高
+    weights = [max(1, elo_range - abs(c.elo - attacker.elo)) for c in candidates]
+    defender = random.choices(candidates, weights=weights, k=1)[0]
+
+    log, rounds = _execute_battle(db, attacker, defender)
+    return _log_to_out(db, log, rounds)
+
+
 @router.post("/revenge/{battle_id}", response_model=BattleLogOut)
 def api_revenge(battle_id: int, player_id: int, db: Session = Depends(get_db)):
     original = db.query(BattleLog).filter(BattleLog.id == battle_id).first()

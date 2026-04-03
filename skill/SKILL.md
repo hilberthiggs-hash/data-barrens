@@ -80,11 +80,17 @@ curl -s http://127.0.0.1:19820/api/player/<id>/allocate -X POST -H 'Content-Type
 ```
 
 ### /barren fight <target_name>
-挑战目标玩家或 NPC。
+挑战指定玩家或 NPC。
 1. 先通过 by-name 获取双方 ID
 2. 调用 challenge API
 ```bash
 curl -s http://127.0.0.1:19820/api/battle/challenge -X POST -H 'Content-Type: application/json' -d '{"attacker_id":<id>,"defender_id":<id>}'
+```
+
+### /barren ladder
+天梯随机匹配！自动匹配 ELO 水平相近的对手进行战斗。
+```bash
+curl -s http://127.0.0.1:19820/api/battle/ladder/<player_id> -X POST
 ```
 
 ### /barren revenge <battle_id>
