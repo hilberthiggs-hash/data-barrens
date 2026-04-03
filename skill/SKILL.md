@@ -87,14 +87,24 @@ curl -s https://barrens.hilberthiggs.com/api/player/notifications/unread -H 'Aut
 
 ## 命令映射
 
-用户输入 `/barren <cmd>` 时，按以下方式处理：
+用户输入 `/barren <cmd>` 时，按以下方式处理。注册是全自动的，首次使用任何命令时自动完成。
 
 ### /barren help
-显示所有可用命令列表和简要说明。
-
-### /barren register
-注册是全自动的，不需要用户手动触发。首次使用任何 /barren 命令时自动完成。
-如果用户单独输入 /barren register，告诉他们"进入荒原不需要手续，直接开始探索吧"，然后展示角色卡片。
+显示以下命令列表：
+```
+⚔️ 数据荒原 — 命令列表
+━━━━━━━━━━━━━━━━━━━━━━━
+  /barren status     查看角色状态
+  /barren ladder     天梯匹配（消耗 2 体力）
+  /barren fight @名  挑战玩家（50% 爆装备！）
+  /barren explore    探索荒原（消耗 4 体力）
+  /barren bag        查看背包
+  /barren skills     查看/装备技能
+  /barren rank       排行榜
+  /barren history    战斗记录
+  /barren merge      合成装备（3→1 升品质）
+━━━━━━━━━━━━━━━━━━━━━━━
+```
 
 ### /barren status [name]
 查看角色状态。不传 name 则查看自己。
@@ -102,77 +112,64 @@ curl -s https://barrens.hilberthiggs.com/api/player/notifications/unread -H 'Aut
 curl -s https://barrens.hilberthiggs.com/api/player/by-name/<name>
 ```
 
-### /barren fight <target_name>
-挑战指定**玩家**（不能打 NPC，NPC 只能通过天梯遇到）。每日限 3 次，不消耗体力。
-**输了 50% 概率被扒一件身上的装备，赢了 50% 概率扒对方一件！**
-1. 先通过 by-name 获取双方 ID
-2. 调用 challenge API
-```bash
-curl -s https://barrens.hilberthiggs.com/api/battle/challenge -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"attacker_id":<id>,"defender_id":<id>}'
-```
-注意：属性点升级时自动随机分配，不需要手动加点。
-
 ### /barren ladder
-天梯随机匹配！自动匹配 ELO 水平相近的对手。消耗 2 体力，不消耗对战次数。
-可能遇到 NPC 也可能遇到玩家，可能偏强也可能偏弱。
-**天梯不掉装备，安全练级。**
+天梯匹配。消耗 2 体力，不消耗对战次数。不掉装备，安全练级。
 ```bash
 curl -s https://barrens.hilberthiggs.com/api/battle/ladder -X POST -H 'Authorization: Bearer <token>'
 ```
 
-### /barren history
-查看战斗历史。
+### /barren fight <target_name>
+挑战指定玩家（不能打 NPC）。每日限 3 次，不消耗体力。
+**50% 概率爆装备（从身上穿的里随机一件）！**
 ```bash
-curl -s https://barrens.hilberthiggs.com/api/battle/history/<player_id>
+curl -s https://barrens.hilberthiggs.com/api/battle/challenge -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"attacker_id":<id>,"defender_id":<id>}'
 ```
 
 ### /barren explore
-探索荒原，获取装备。**装备获得后自动择优穿戴**，无需手动操作。
+探索荒原获取装备，消耗 4 体力。装备自动择优穿戴。
 ```bash
 curl -s https://barrens.hilberthiggs.com/api/explore -X POST -H 'Authorization: Bearer <token>'
 ```
-API 返回 `auto_equip` 数组，非空时展示自动穿戴变更（如 "weapon: [白]铁剑 → [绿]铁剑"）。
+API 返回 `auto_equip` 数组，非空时展示穿戴变更。
 
 ### /barren bag
-查看背包装备（含已穿戴和未穿戴）。
+查看背包（已穿戴标 [装备中]）。
 ```bash
 curl -s https://barrens.hilberthiggs.com/api/equipment/<player_id>/list
 ```
 
-### /barren merge <template_id> <rarity>
-合成装备（3 合 1 升级）。
-```bash
-curl -s https://barrens.hilberthiggs.com/api/equipment/merge -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"template_id":"<tid>","rarity":<r>}'
-```
-
 ### /barren skills
-查看已解锁技能。
+查看已解锁技能。用户说"装备 xxx 技能"或"卸下 xxx 技能"时调用装备/卸下接口。
 ```bash
 curl -s https://barrens.hilberthiggs.com/api/skill/<player_id>/list
 ```
-
-### /barren equip-skill <skill_id>
-装备技能（最多 3 个）。
+装备技能（最多 3 个）：
 ```bash
 curl -s https://barrens.hilberthiggs.com/api/skill/equip -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"skill_id":"<sid>","equip":true}'
 ```
-
-### /barren unequip-skill <skill_id>
-卸下技能。
+卸下技能：
 ```bash
 curl -s https://barrens.hilberthiggs.com/api/skill/equip -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"skill_id":"<sid>","equip":false}'
 ```
 
 ### /barren rank [elo|level]
-排行榜，默认 elo。
+排行榜（仅显示玩家），默认 elo。
 ```bash
 curl -s https://barrens.hilberthiggs.com/api/ranking/elo
 curl -s https://barrens.hilberthiggs.com/api/ranking/level
 ```
 
-### /barren npcs
-列出所有 NPC（is_npc=true），方便玩家选择挑战对象。
-通过排行榜接口获取，过滤 is_npc 为 true 的。
+### /barren history
+查看最近战斗记录。
+```bash
+curl -s https://barrens.hilberthiggs.com/api/battle/history/<player_id>
+```
+
+### /barren merge
+合成装备：3 个同名同稀有度 → 1 个更高品质。展示背包中可合成的选项让用户选择。
+```bash
+curl -s https://barrens.hilberthiggs.com/api/equipment/merge -X POST -H 'Content-Type: application/json' -H 'Authorization: Bearer <token>' -d '{"template_id":"<tid>","rarity":<r>}'
+```
 
 ## 体力提示（必须遵守）
 
