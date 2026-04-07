@@ -38,7 +38,7 @@ cd data-barrens
 docker compose up -d
 ```
 
-Server runs at `http://localhost:8000`. Verify: `curl http://localhost:8000/api/health`
+Server runs at `http://localhost:21520`. Verify: `curl http://localhost:21520/api/health`
 
 ### Without Docker
 
@@ -53,7 +53,7 @@ uvicorn server.main:app --host 0.0.0.0 --port 8000
 
 ```bash
 # Replace with your server URL
-curl -sL https://raw.githubusercontent.com/hilberthiggs-hash/data-barrens/main/install.sh | bash -s https://your-server:8000
+curl -sL https://raw.githubusercontent.com/hilberthiggs-hash/data-barrens/main/install.sh | bash -s https://your-server:21520
 ```
 
 Or manually:
@@ -170,7 +170,7 @@ docker compose up -d
 安装 skill 指向你的服务器：
 
 ```bash
-curl -sL https://raw.githubusercontent.com/hilberthiggs-hash/data-barrens/main/install.sh | bash -s https://你的服务器:8000
+curl -sL https://raw.githubusercontent.com/hilberthiggs-hash/data-barrens/main/install.sh | bash -s https://你的服务器:21520
 ```
 
 详细说明见上方英文文档。

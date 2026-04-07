@@ -2,7 +2,7 @@ services:
   data-barrens:
     build: .
     ports:
-      - "8000:8000"
+      - "21520:21520"
     volumes:
       - barrens-data:/data
     restart: unless-stopped

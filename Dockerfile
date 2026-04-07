@@ -9,6 +9,6 @@ COPY server/ server/
 
 ENV ARENA_DB_PATH=/data/arena.db
 
-EXPOSE 8000
+EXPOSE 21520
 
-CMD ["uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "21520"]
