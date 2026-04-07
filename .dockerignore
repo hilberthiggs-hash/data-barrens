@@ -1,0 +1,12 @@
+venv/
+.git/
+.pytest_cache/
+__pycache__/
+*.pyc
+arena.db
+*.db
+tests/
+plans/
+skill/
+deploy/
+.DS_Store
