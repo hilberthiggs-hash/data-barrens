@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Barrens - Async PvP RPG inside Claude Code</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0e17;
+    color: #c9d1d9;
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .hero {
+    max-width: 720px;
+    width: 100%;
+    padding: 60px 24px 40px;
+    text-align: center;
+  }
+  h1 {
+    font-size: 2.4em;
+    color: #e6edf3;
+    margin-bottom: 8px;
+  }
+  h1 span { color: #f0883e; }
+  .tagline {
+    font-size: 1.1em;
+    color: #8b949e;
+    margin-bottom: 40px;
+    line-height: 1.6;
+  }
+  .terminal {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 0;
+    text-align: left;
+    margin: 0 auto 40px;
+    max-width: 600px;
+    overflow: hidden;
+  }
+  .terminal-bar {
+    background: #21262d;
+    padding: 10px 16px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot-r { background: #f85149; }
+  .dot-y { background: #d29922; }
+  .dot-g { background: #3fb950; }
+  .terminal-bar span {
+    color: #8b949e;
+    font-size: 0.8em;
+    margin-left: 8px;
+  }
+  .terminal pre {
+    padding: 20px;
+    font-size: 0.82em;
+    line-height: 1.5;
+    overflow-x: auto;
+    color: #c9d1d9;
+  }
+  .g { color: #3fb950; }
+  .o { color: #f0883e; }
+  .b { color: #58a6ff; }
+  .p { color: #bc8cff; }
+  .r { color: #f85149; }
+  .y { color: #d29922; }
+  .d { color: #8b949e; }
+
+  .install-section {
+    max-width: 720px;
+    width: 100%;
+    padding: 0 24px 40px;
+  }
+  .install-section h2 {
+    color: #e6edf3;
+    font-size: 1.3em;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .install-box {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px 20px;
+    position: relative;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .install-box:hover { border-color: #58a6ff; }
+  .install-box code {
+    font-size: 0.82em;
+    color: #3fb950;
+    word-break: break-all;
+  }
+  .install-box .copy-hint {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #8b949e;
+    font-size: 0.75em;
+  }
+  .copied { color: #3fb950 !important; }
+
+  .features {
+    max-width: 720px;
+    width: 100%;
+    padding: 0 24px 60px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .feature {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .feature .icon { font-size: 1.6em; margin-bottom: 8px; }
+  .feature h3 { color: #e6edf3; font-size: 0.95em; margin-bottom: 6px; }
+  .feature p { color: #8b949e; font-size: 0.82em; line-height: 1.5; }
+
+  .buddies {
+    max-width: 720px;
+    width: 100%;
+    padding: 0 24px 40px;
+    text-align: center;
+  }
+  .buddies .emoji-row {
+    font-size: 1.8em;
+    letter-spacing: 8px;
+    line-height: 2;
+  }
+  .buddies p { color: #8b949e; font-size: 0.85em; margin-top: 8px; }
+
+  .stats {
+    max-width: 720px;
+    width: 100%;
+    padding: 20px 24px 60px;
+    display: flex;
+    justify-content: center;
+    gap: 48px;
+    text-align: center;
+  }
+  .stat-num { font-size: 2em; color: #f0883e; font-weight: bold; }
+  .stat-label { color: #8b949e; font-size: 0.85em; margin-top: 4px; }
+
+  footer {
+    padding: 24px;
+    color: #484f58;
+    font-size: 0.8em;
+    text-align: center;
+  }
+  footer a { color: #58a6ff; text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 600px) {
+    .features { grid-template-columns: 1fr; }
+    h1 { font-size: 1.8em; }
+    .stats { gap: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1><span>&#9876;</span> Data Barrens</h1>
+  <p class="tagline">
+    Async PvP RPG inside Claude Code.<br>
+    Fight real players. Loot their gear. Climb the ladder.<br>
+    All from your terminal.
+  </p>
+
+  <div class="terminal">
+    <div class="terminal-bar">
+      <div class="dot dot-r"></div>
+      <div class="dot dot-y"></div>
+      <div class="dot dot-g"></div>
+      <span>claude-code</span>
+    </div>
+    <pre>
+<span class="d">$</span> <span class="b">/barren</span>
+
+<span class="d">&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;</span>
+     \^^^/          <span class="g">alice</span>
+  /^\  /^\          &#x1f409; dragon  &#10022; &#x1f451;
+ &lt;  &#10022;  &#10022;  &gt;        <span class="b">Lv.15</span> | <span class="o">ELO 1523</span>
+ (   ~~   )        &#9889; Stamina 18/20
+  `-vvvv-&#180;         <span class="d">&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</span>
+                   STR 25 | AGI 18
+                   INT 12 | VIT 20
+<span class="d">&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</span>
+  &#9876; Skills: <span class="r">Heavy Strike</span> / <span class="o">Fireball</span> / <span class="b">Block</span>
+  &#x1f6e1; <span class="p">[Rare] Flame Greatsword</span>
+  &#x1f525; <span class="y">Set: Flame Awakening (3pc)</span>
+<span class="d">&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;</span></pre>
+  </div>
+</div>
+
+<div class="install-section">
+  <h2>Install in 5 seconds</h2>
+  <div class="install-box" onclick="copyInstall(this)">
+    <code>mkdir -p ~/.claude/skills/barren && curl -sL https://raw.githubusercontent.com/hilberthiggs-hash/data-barrens/main/skill/SKILL.md -o ~/.claude/skills/barren/SKILL.md</code>
+    <span class="copy-hint">click to copy</span>
+  </div>
+  <p style="color:#8b949e; font-size:0.82em; text-align:center; margin-top:12px;">
+    Restart Claude Code, type <code style="color:#3fb950;">/barren</code>
+  </p>
+</div>
+
+<div class="features">
+  <div class="feature">
+    <div class="icon">&#9876;</div>
+    <h3>Async PvP</h3>
+    <p>Challenge real players anytime. Win to loot their equipped gear. Lose and they take yours.</p>
+  </div>
+  <div class="feature">
+    <div class="icon">&#x1f6e1;</div>
+    <h3>5 Equipment Sets</h3>
+    <p>Flame, Shadow, Frost, Guardian, Chaos. Collect 2pc/3pc for bonus stats.</p>
+  </div>
+  <div class="feature">
+    <div class="icon">&#x1f4a1;</div>
+    <h3>24 Skills</h3>
+    <p>4 stat trees x 6 skills. Auto-equipped by damage/utility score on level-up.</p>
+  </div>
+  <div class="feature">
+    <div class="icon">&#x1f30d;</div>
+    <h3>Multilingual</h3>
+    <p>English &amp; Chinese. <code>/barren lang</code> to switch. All UI renders in your language.</p>
+  </div>
+  <div class="feature">
+    <div class="icon">&#x1f3af;</div>
+    <h3>Smart Auto-Equip</h3>
+    <p>Evaluates all gear combos including set bonuses. Always optimal, zero manual work.</p>
+  </div>
+  <div class="feature">
+    <div class="icon">&#x1f433;</div>
+    <h3>Self-Host</h3>
+    <p><code>docker compose up -d</code> — run a private server for your team.</p>
+  </div>
+</div>
+
+<div class="buddies">
+  <div class="emoji-row">&#x1f986;&#x1fab6;&#x1fae7;&#x1f431;&#x1f409;&#x1f419;&#x1f989;&#x1f427;&#x1f422;</div>
+  <div class="emoji-row">&#x1f40c;&#x1f47b;&#x1f98e;&#x1f9ab;&#x1f335;&#x1f916;&#x1f430;&#x1f344;&#x1f416;</div>
+  <p>18 buddy species — your appearance is generated from your Claude Code identity</p>
+</div>
+
+<div class="stats" id="stats">
+  <div>
+    <div class="stat-num" id="stat-players">--</div>
+    <div class="stat-label">Players</div>
+  </div>
+  <div>
+    <div class="stat-num" id="stat-battles">--</div>
+    <div class="stat-label">Battles</div>
+  </div>
+  <div>
+    <div class="stat-num" id="stat-top">--</div>
+    <div class="stat-label">#1 ELO</div>
+  </div>
+</div>
+
+<footer>
+  <a href="https://github.com/hilberthiggs-hash/data-barrens">GitHub</a>
+  &nbsp;&middot;&nbsp;
+  MIT License
+  &nbsp;&middot;&nbsp;
+  Built as a Claude Code Skill
+</footer>
+
+<script>
+function copyInstall(el) {
+  const code = el.querySelector('code').textContent;
+  navigator.clipboard.writeText(code);
+  const hint = el.querySelector('.copy-hint');
+  hint.textContent = 'copied!';
+  hint.classList.add('copied');
+  setTimeout(() => { hint.textContent = 'click to copy'; hint.classList.remove('copied'); }, 2000);
+}
+
+// Live stats from API
+async function loadStats() {
+  try {
+    const r = await fetch('/api/ranking/elo');
+    const data = await r.json();
+    document.getElementById('stat-players').textContent = data.length;
+    if (data.length > 0) {
+      document.getElementById('stat-top').textContent = Math.round(data[0].player.elo);
+    }
+  } catch(e) {}
+  try {
+    const r = await fetch('/api/battle/history/1');
+    const data = await r.json();
+    // Use the highest battle ID as approximate total
+    if (data.length > 0) {
+      document.getElementById('stat-battles').textContent = data[0].id + '+';
+    }
+  } catch(e) {}
+}
+loadStats();
+</script>
+</body>
+</html>
