@@ -15,12 +15,23 @@ router = APIRouter(prefix="/api/battle", tags=["battle"])
 
 def _get_equipped_bonuses(player: Player) -> tuple[int, int, int, int]:
     bonuses = [0, 0, 0, 0]
+    equipped_tids = []
     for e in player.equipments:
         if e.equipped:
             bonuses[0] += e.str_bonus
             bonuses[1] += e.agi_bonus
             bonuses[2] += e.int_bonus
             bonuses[3] += e.vit_bonus
+            equipped_tids.append(e.template_id)
+
+    # 套装加成
+    from server.game_data.equipment import get_active_set_bonuses
+    for _, sb in get_active_set_bonuses(equipped_tids):
+        bonuses[0] += sb.str_bonus
+        bonuses[1] += sb.agi_bonus
+        bonuses[2] += sb.int_bonus
+        bonuses[3] += sb.vit_bonus
+
     return tuple(bonuses)
 
 

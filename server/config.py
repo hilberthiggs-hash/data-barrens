@@ -8,8 +8,8 @@ DATABASE_URL = f"sqlite:///{DB_PATH}"
 # 游戏常量
 MAX_LEVEL = 30
 DAILY_STAMINA = 20
-NEWBIE_STAMINA = 40
-NEWBIE_DAYS = 7
+NEWBIE_STAMINA = 20    # 取消新手体力加成，统一 20
+NEWBIE_DAYS = 0        # 新手期关闭
 BATTLE_STAMINA_COST = 0  # 对战不消耗体力，改用每日次数限制
 DAILY_BATTLE_LIMIT = 3  # 每日对战次数上限
 LOOT_CHANCE = 0.5  # 胜者从败者抢装备的概率

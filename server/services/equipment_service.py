@@ -1,38 +1,76 @@
+from itertools import product
+
 from sqlalchemy.orm import Session
 
 from server.models import Player, Equipment
 from server.config import MERGE_REQUIRED
-from server.game_data.equipment import RARITY_MULTIPLIER, TEMPLATE_MAP
+from server.game_data.equipment import RARITY_MULTIPLIER, TEMPLATE_MAP, get_active_set_bonuses
 
 
-def _equip_score(e: Equipment) -> int:
-    """装备总属性加成，用于择优"""
+def _item_stats(e: Equipment) -> int:
     return e.str_bonus + e.agi_bonus + e.int_bonus + e.vit_bonus
 
 
+def _combo_score(combo: dict[str, Equipment | None]) -> int:
+    """计算一组装备的总属性（含套装加成）"""
+    total = 0
+    tids = []
+    for item in combo.values():
+        if item:
+            total += _item_stats(item)
+            tids.append(item.template_id)
+
+    for _, sb in get_active_set_bonuses(tids):
+        total += sb.str_bonus + sb.agi_bonus + sb.int_bonus + sb.vit_bonus
+
+    return total
+
+
 def auto_equip_best(db: Session, player: Player) -> list[str]:
-    """自动为每个槽位穿戴总属性最高的装备。返回变更描述列表。"""
+    """自动穿戴最优装备组合（考虑套装加成）。枚举所有组合取总分最高。"""
+    from server.schemas import RARITY_NAMES
+
+    # 按槽位分组
+    by_slot: dict[str, list[Equipment]] = {"weapon": [], "armor": [], "accessory": []}
+    for e in player.equipments:
+        if e.slot in by_slot:
+            by_slot[e.slot].append(e)
+
+    # 每个槽位的候选列表（无装备的槽位用 [None]）
+    candidates = {
+        slot: items if items else [None]
+        for slot, items in by_slot.items()
+    }
+
+    # 枚举所有组合，找总分最高的
+    best_score = -1
+    best_combo: dict[str, Equipment | None] = {}
+    for w, a, acc in product(candidates["weapon"], candidates["armor"], candidates["accessory"]):
+        combo = {"weapon": w, "armor": a, "accessory": acc}
+        score = _combo_score(combo)
+        if score > best_score:
+            best_score = score
+            best_combo = combo
+
+    # 应用最优组合
     changes = []
     for slot in ("weapon", "armor", "accessory"):
-        all_in_slot = [e for e in player.equipments if e.slot == slot]
-        if not all_in_slot:
+        best_item = best_combo.get(slot)
+        current = next((e for e in by_slot[slot] if e.equipped), None)
+
+        if best_item is None:
             continue
-
-        best = max(all_in_slot, key=_equip_score)
-        current = next((e for e in all_in_slot if e.equipped), None)
-
-        if current and current.id == best.id:
-            continue  # 已经是最好的
+        if current and current.id == best_item.id:
+            continue
 
         if current:
             current.equipped = False
-        best.equipped = True
+        best_item.equipped = True
 
-        from server.schemas import RARITY_NAMES
         if current:
-            changes.append(f"{slot}: [{RARITY_NAMES[current.rarity]}]{current.name} → [{RARITY_NAMES[best.rarity]}]{best.name}")
+            changes.append(f"{slot}: [{RARITY_NAMES[current.rarity]}]{current.name} → [{RARITY_NAMES[best_item.rarity]}]{best_item.name}")
         else:
-            changes.append(f"{slot}: 穿戴 [{RARITY_NAMES[best.rarity]}]{best.name}")
+            changes.append(f"{slot}: 穿戴 [{RARITY_NAMES[best_item.rarity]}]{best_item.name}")
 
     if changes:
         db.commit()

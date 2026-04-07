@@ -106,6 +106,7 @@ def add_exp(db: Session, player: Player, exp: int) -> tuple[Player, int]:
             setattr(player, stat, getattr(player, stat) + 1)
 
         _unlock_skills(db, player)
+        _auto_equip_skills(db, player)
 
     db.commit()
     db.refresh(player)
@@ -120,6 +121,51 @@ def _unlock_skills(db: Session, player: Player):
     for skill in SKILLS:
         if skill.unlock_level <= player.level and skill.id not in owned_skill_ids:
             db.add(PlayerSkill(player_id=player.id, skill_id=skill.id, equipped=False))
+    db.flush()  # flush so _auto_equip_skills sees new skills
+
+
+def _skill_score(skill_def, player) -> float:
+    """给技能打分，用于自动择优。伤害技能按实际伤害算，防御/工具技能按效用算。"""
+    stat_attr = skill_def.stat + ("_" if skill_def.stat in ("str", "int") else "")
+    stat_val = getattr(player, stat_attr, 5)
+
+    # 伤害型技能：直接算伤害
+    score = skill_def.damage_base + skill_def.damage_scale * stat_val
+
+    # 纯工具技能（0伤害）：按属性和效果类型估值
+    if score == 0 and skill_def.effect:
+        utility = {"block": 2.0, "dodge": 1.5, "reflect": 1.5, "heal": 2.5}
+        score = stat_val * utility.get(skill_def.effect, 1.0)
+
+    # 有特殊效果的技能额外加分
+    if skill_def.effect:
+        score += 5
+
+    return score
+
+
+def _auto_equip_skills(db: Session, player: Player):
+    """自动装备评分最高的 3 个技能"""
+    from server.game_data.skills import SKILL_MAP
+    from server.config import MAX_EQUIPPED_SKILLS
+
+    all_ps = list(player.skills)
+    if not all_ps:
+        return
+
+    # 给每个已解锁技能打分
+    scored = []
+    for ps in all_ps:
+        skill_def = SKILL_MAP.get(ps.skill_id)
+        if skill_def:
+            scored.append((ps, _skill_score(skill_def, player)))
+
+    scored.sort(key=lambda x: x[1], reverse=True)
+
+    # 前 N 个装备，其余卸下
+    top_ids = {ps.skill_id for ps, _ in scored[:MAX_EQUIPPED_SKILLS]}
+    for ps in all_ps:
+        ps.equipped = ps.skill_id in top_ids
 
 
 def refresh_stamina(db: Session, player: Player) -> Player:
@@ -195,6 +241,12 @@ def to_player_out(player: Player) -> PlayerOut:
         )
         for e in player.equipments if e.equipped
     ]
+    # 套装效果
+    from server.game_data.equipment import get_active_set_bonuses, SET_PREFIXES
+    equipped_tids = [e.template_id for e in player.equipments if e.equipped]
+    active_sets = get_active_set_bonuses(equipped_tids)
+    set_descriptions = [bonus.description for _, bonus in active_sets]
+
     return PlayerOut(
         id=player.id,
         name=player.name,
@@ -213,4 +265,5 @@ def to_player_out(player: Player) -> PlayerOut:
         created_at=player.created_at,
         equipped_skills=equipped_skills,
         equipped_equipment=equipped_equip,
+        active_sets=set_descriptions,
     )

@@ -44,6 +44,7 @@ class PlayerOut(BaseModel):
     created_at: datetime
     equipped_skills: list[str]
     equipped_equipment: list["EquipmentOut"]
+    active_sets: list[str] = []  # 激活的套装效果描述
 
     model_config = {"from_attributes": True, "populate_by_name": True}
 
