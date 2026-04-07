@@ -50,13 +50,43 @@ systemctl daemon-reload
 systemctl enable data-barrens
 systemctl restart data-barrens
 
-echo "=== 7. 配置 Nginx 反代 ==="
+echo "=== 7. 配置 Nginx 反代 + Rate Limiting ==="
 cat > /etc/nginx/sites-available/barrens << 'NGINX'
+# Rate limiting zones
+limit_req_zone $binary_remote_addr zone=api_general:10m rate=30r/m;
+limit_req_zone $binary_remote_addr zone=api_register:10m rate=3r/h;
+limit_req_zone $binary_remote_addr zone=api_write:10m rate=20r/m;
+
 server {
     listen 80;
     server_name barrens.hilberthiggs.com;
 
+    # Register endpoint — strict: 3 per hour per IP
+    location = /api/player/register {
+        limit_req zone=api_register burst=2 nodelay;
+        limit_req_status 429;
+        proxy_pass http://127.0.0.1:19820;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Write endpoints — moderate: 20 per minute per IP
+    location ~ ^/api/(battle|explore|equipment/merge|skill/equip) {
+        limit_req zone=api_write burst=5 nodelay;
+        limit_req_status 429;
+        proxy_pass http://127.0.0.1:19820;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # All other endpoints — general: 30 per minute per IP
     location / {
+        limit_req zone=api_general burst=10 nodelay;
+        limit_req_status 429;
         proxy_pass http://127.0.0.1:19820;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

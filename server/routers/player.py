@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+import time
+from collections import defaultdict
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from server.db import get_db
@@ -12,9 +15,26 @@ from server.services.player_service import (
 
 router = APIRouter(prefix="/api/player", tags=["player"])
 
+# 注册频率限制：每 IP 每小时最多 5 次
+_register_attempts: dict[str, list[float]] = defaultdict(list)
+_REGISTER_LIMIT = 5
+_REGISTER_WINDOW = 3600  # 1 hour
+
+
+def _check_register_rate(ip: str):
+    now = time.time()
+    attempts = _register_attempts[ip]
+    # 清理过期记录
+    _register_attempts[ip] = [t for t in attempts if now - t < _REGISTER_WINDOW]
+    if len(_register_attempts[ip]) >= _REGISTER_LIMIT:
+        raise HTTPException(status_code=429, detail="注册太频繁，请稍后再试")
+    _register_attempts[ip].append(now)
+
 
 @router.post("/register")
-def api_register(data: PlayerRegister, db: Session = Depends(get_db)):
+def api_register(data: PlayerRegister, request: Request, db: Session = Depends(get_db)):
+    client_ip = request.headers.get("X-Real-IP", request.client.host)
+    _check_register_rate(client_ip)
     try:
         player = register_player(db, data)
     except ValueError as e:
