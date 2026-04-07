@@ -54,7 +54,7 @@ echo "=== 7. 配置 Nginx 反代 + Rate Limiting ==="
 cat > /etc/nginx/sites-available/barrens << 'NGINX'
 # Rate limiting zones
 limit_req_zone $binary_remote_addr zone=api_general:10m rate=30r/m;
-limit_req_zone $binary_remote_addr zone=api_register:10m rate=3r/h;
+limit_req_zone $binary_remote_addr zone=api_register:10m rate=1r/m;
 limit_req_zone $binary_remote_addr zone=api_write:10m rate=20r/m;
 
 server {
