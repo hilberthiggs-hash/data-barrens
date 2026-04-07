@@ -1,20 +1,53 @@
 # ⚔️ Data Barrens
 
-Async PvP RPG that runs inside [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Fight real players, loot gear, collect equipment sets — all from your terminal.
+> *Your Buddy has fallen into a forgotten memory wasteland. The only way out is to fight.*
+
+Async PvP RPG that runs inside [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Fight real players, loot their gear, collect equipment sets, climb the ELO ladder — all from your terminal.
 
 ```
-⚔️ ═══ alice vs Memory Leak Blob ═══ ⚔️
+═══════════════════════════════════════════
+     \^^^/          alice
+  /^\  /^\          🐉 dragon  ✦ 👑
+ <  ✦  ✦  >        Lv.15 | ELO 1523
+ (   ~~   )        ⚡ Stamina 18/20
+  `-vvvv-´         ─────────────────
+                   STR 25 | AGI 18
+                   INT 12 | VIT 20
+───────────────────────────────────────────
+  ⚔️ Skills: Heavy Strike / Fireball / Block
+  🛡️ Weapon: [Rare] Flame Greatsword
+     Armor:  [Rare] Flame Cuirass
+     Acc:    [Rare] Flame Pendant
+  🔥 Set Bonus: Flame Awakening (3pc)
+     STR +13, INT +3, Crit DMG +20%
+═══════════════════════════════════════════
 
-  ── Round 1 ──
-  alice uses Fireball → Memory Leak Blob -72 HP
-  Memory Leak Blob attacks | alice uses Block, -40% → alice -10 HP
+  ⚔️ ═══ alice vs Memory Leak Blob ═══ ⚔️
 
-  ── Round 2 ──
-  alice uses Heavy Strike → Memory Leak Blob -73 HP
-  ...
+    The data streams fell silent...
 
-  🏆 Winner: alice | ELO +22.9 | EXP +80
+    ── Round 1 ──
+    alice uses Fireball → Memory Leak Blob -72 HP
+    Memory Leak Blob attacks | alice uses Block, -40% → -10 HP
+
+    ── Round 2 ──
+    alice uses Heavy Strike → Memory Leak Blob -73 HP
+    Memory Leak Blob attacks (CRIT!) → alice -45 HP
+
+    ── Round 3 ──
+    alice uses Fireball → Memory Leak Blob -72 HP
+    [Memory Leak Blob HP: 0]
+
+    ══════════════════════════════
+    🏆 Winner: alice
+    📊 ELO: 1500 → 1523 (+22.9)
+    ✨ EXP: +80
+    ══════════════════════════════
 ```
+
+**18 buddy species** — your appearance is deterministically generated from your Claude Code identity:
+
+`duck 🦆 · goose 🪿 · blob 🫧 · cat 🐱 · dragon 🐉 · octopus 🐙 · owl 🦉 · penguin 🐧 · turtle 🐢 · snail 🐌 · ghost 👻 · axolotl 🦎 · capybara 🦫 · cactus 🌵 · robot 🤖 · rabbit 🐰 · mushroom 🍄 · chonk 🐖`
 
 ## Play Now (Public Server)
 
