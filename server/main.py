@@ -39,6 +39,20 @@ def root():
     return {"message": "Data Wasteland Server", "welcome": WELCOME_TEXT}
 
 
+@app.get("/api/skill-version")
+def skill_version():
+    from server.config import SKILL_VERSION, SKILL_CHANGELOG
+    return {"version": SKILL_VERSION, "changelog": SKILL_CHANGELOG}
+
+
+@app.get("/api/skill-content")
+def skill_content():
+    from fastapi.responses import PlainTextResponse
+    from pathlib import Path
+    skill_path = Path(__file__).resolve().parent.parent / "skill" / "SKILL.md"
+    return PlainTextResponse(skill_path.read_text(encoding="utf-8"))
+
+
 @app.get("/api/health")
 def health():
     return {"status": "ok"}

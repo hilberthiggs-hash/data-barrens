@@ -37,3 +37,7 @@ ELO_K = 32
 
 # 初始属性
 INITIAL_STATS = {"str_": 5, "agi": 5, "int_": 5, "vit": 5}
+
+# Skill 版本管理
+SKILL_VERSION = 1
+SKILL_CHANGELOG = "初始版本"
